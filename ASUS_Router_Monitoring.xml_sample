@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+    <router>
+        <ip>192.168.1.1</ip>
+        <login>login1</login>
+        <password>password1</password>
+        <port>22</port>
+    </router>
+    <repeater>
+        <ip>192.168.1.2</ip>
+        <login>login2</login>
+        <password>password2</password>
+        <port>22</port>
+    </repeater>
+    <settings>
+        <refreshRate>5</refreshRate>
+        <screenWidth>120</screenWidth>
+        <screenHeight>36</screenHeight>
+    </settings>
+    <providers>
+        <provider>
+            <providerName>Provider1</providerName>
+            <vpnAdapterName>ppp0</vpnAdapterName>
+        </provider>
+        <provider>
+            <providerName>Provider2</providerName>
+            <vpnAdapterName>ppp1</vpnAdapterName>
+        </provider>
+    </providers>
+</config>
