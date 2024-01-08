@@ -46,13 +46,6 @@ class Screen
         }
     }
 
-    private function switchTextColorTo(Color $color): void
-    {
-        if (stream_isatty(STDOUT)) {
-            echo $color->value;
-        }
-    }
-
     private function formatBytes(int|float $bytes, int $precision = 2): string
     {
         $units = array('B', 'KB', 'MB', 'GB', 'TB');
