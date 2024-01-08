@@ -111,12 +111,12 @@ class Screen
             str_repeat(' ', $paddingSpaces);
     }
 
-    function getLineWithTotalTraffic($directionLetter, $trafficValue, $totalTrafficValue, $oneProviderWidth, $speedLengthWithSpace, $paddingSpaces, $color): string
+    function getLineWithTotalTraffic($directionLetter, $trafficValue, $totalTrafficValue, $idleCount, $speedLengthWithSpace, $paddingSpaces, $color): string
     {
         $labelToShow = $directionLetter . ' ' . str_pad($this->formatBytes($trafficValue, 3), $speedLengthWithSpace);
         if (($trafficValue != $totalTrafficValue) && ($totalTrafficValue > 0)) {
             $perc = round(($trafficValue / $totalTrafficValue) * 100, 2);
-            $labelToShow .= '(' . $perc . ' %)';
+            $labelToShow .= str_pad('(' . $perc . ' %)', 10, ' ') . ' (idle ' . $idleCount . ')';
         }
         $labelToShow = str_pad($labelToShow, $this->oneProviderWidth);
         return $this->getColoredText($labelToShow, $color) . str_repeat(' ', $paddingSpaces);
@@ -339,14 +339,14 @@ class Screen
 
         echo $this->getColoredText(str_pad('Recv.', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1), Color::LIGHT_MAGENTA);
         foreach ($providers as $providerData) {
-            echo $this->getLineWithTotalTraffic(' R', $providerData['RXbytes'] - $providerData['RXbytesOnStart'], $currentTotalTrafficValueRx, $this->oneProviderWidth, Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::LIGHT_MAGENTA);
+            echo $this->getLineWithTotalTraffic(' R', $providerData['RXbytes'] - $providerData['RXbytesOnStart'], $currentTotalTrafficValueRx, $providerData['idleRXcount'], Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::LIGHT_MAGENTA);
         }
 
         echo "\n";
 
         echo $this->getColoredText(str_pad('Trsm.', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1), Color::LIGHT_CYAN);
         foreach ($providers as $providerData) {
-            echo $this->getLineWithTotalTraffic(' T', $providerData['TXbytes'] - $providerData['TXbytesOnStart'], $currentTotalTrafficValueTx, $this->oneProviderWidth, Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::LIGHT_CYAN);
+            echo $this->getLineWithTotalTraffic(' T', $providerData['TXbytes'] - $providerData['TXbytesOnStart'], $currentTotalTrafficValueTx, $providerData['idleTXcount'], Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::LIGHT_CYAN);
         }
 
     }

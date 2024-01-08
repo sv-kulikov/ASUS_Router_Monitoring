@@ -109,6 +109,8 @@ class Router
                     $providerData['TXbytesOnStart'] = $providerData['TXbytes'] ?? 0;
                     $providerData['isOffline'] = false;
                     $providerData['ip'] = '';
+                    $providerData['idleRXcount'] = 0;
+                    $providerData['idleTXcount'] = 0;
                     $this->providersData[$providerKey] = $providerData;
                 }
             }
@@ -123,6 +125,8 @@ class Router
         $this->providersData['TOTAL']['TXbytes'] = 0;
         $this->providersData['TOTAL']['isOffline'] = false;
         $this->providersData['TOTAL']['ip'] = '';
+        $this->providersData['TOTAL']['idleRXcount'] = 0;
+        $this->providersData['TOTAL']['idleTXcount'] = 0;
 
         foreach ($this->providersData as $providerData) {
             if ($providerData['vpnAdapterName'] != 'TOTAL') {
@@ -183,6 +187,14 @@ class Router
             $speedTX = ($providerData['TXbytes'] - $providerData['TXbytesLast']) / $timeDelta;
             $this->providersData[$providerName]['speedRX'][] = $speedRX;
             $this->providersData[$providerName]['speedTX'][] = $speedTX;
+
+            if ($speedRX == 0) {
+                $this->providersData[$providerName]['idleRXcount']++;
+            }
+
+            if ($speedTX == 0) {
+                $this->providersData[$providerName]['idleTXcount']++;
+            }
 
             $this->providersData[$providerName]['maxRXlast'] = $this->providersData[$providerName]['maxRX'] ?? 0;
             $this->providersData[$providerName]['minRXlast'] = $this->providersData[$providerName]['minRX'] ?? 0;
