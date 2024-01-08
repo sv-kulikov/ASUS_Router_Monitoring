@@ -145,10 +145,16 @@ class Screen
         // Print providers names
         echo str_repeat(' ', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1);
         foreach ($providers as $providerData) {
+
+            if ($this->config['settings']['demo'] && $providerData['providerName']!='TOTAL') {
+                $providerData['ip'] = '***.***.***.***';
+                $providerData['providerName'] = 'Provider';
+            }
+
             if ($providerData['ip'] != '') {
                 $providerNameWithData = $providerData['providerName'];
                 $providerNameWithData .= ' (' . $providerData['ip'];
-                if ($providerData['ddns']) {
+                if ($providerData['ddns'] ?? false) {
                     $providerNameWithData .= ', DDNS';
                 }
                 $providerNameWithData .= ')';

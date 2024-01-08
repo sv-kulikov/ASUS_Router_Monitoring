@@ -10,19 +10,15 @@ use Exception;
 use phpseclib3\Net\SSH2;
 
 // Getting all settings
-$config = Config::getConfigData(__DIR__ . '/ASUS_Router_Monitoring.xml_sample');
-
-if ($config['providers']['provider'][0]['providerName'] == 'Provider1')
-{
-    echo "Sorry, guys... :) Change the path in line 13th to your own config path.\n";
-    try {
+if (is_readable(__DIR__ . '/../' . 'ASUS_Router_Monitoring.xml')) {
     $config = Config::getConfigData(__DIR__ . '/../' . 'ASUS_Router_Monitoring.xml');
-    } catch (Exception $e) {
-        echo "Change the path in line 13th to your own config path.\n";
-        exit(-1);
-    }
 } else {
-    echo $config['providers']['provider'][0]['providerName'] . "\n";
+    $config = Config::getConfigData(__DIR__ . '/ASUS_Router_Monitoring.xml_sample');
+}
+
+if ($config['providers']['provider'][0]['providerName'] == 'Provider1') {
+    echo "Change the path in line 14th to your own config path.\n";
+    exit(-1);
 }
 
 // Hide IPs and providers' names in demo mode
