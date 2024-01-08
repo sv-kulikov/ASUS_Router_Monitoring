@@ -15,7 +15,21 @@ $config = Config::getConfigData(__DIR__ . '/ASUS_Router_Monitoring.xml_sample');
 if ($config['providers']['provider'][0]['providerName'] == 'Provider1')
 {
     echo "Sorry, guys... :) Change the path in line 13th to your own config path.\n";
+    try {
     $config = Config::getConfigData(__DIR__ . '/../' . 'ASUS_Router_Monitoring.xml');
+    } catch (Exception $e) {
+        echo "Change the path in line 13th to your own config path.\n";
+        exit(-1);
+    }
+} else {
+    echo $config['providers']['provider'][0]['providerName'] . "\n";
+}
+
+// Hide IPs and providers' names in demo mode
+if (isset($argv[1]) && $argv[1] == 'demo') {
+    $config['settings']['demo'] = true;
+} else {
+    $config['settings']['demo'] = false;
 }
 
 // Preparing screen
