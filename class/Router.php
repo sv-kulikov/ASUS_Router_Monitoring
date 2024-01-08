@@ -324,7 +324,7 @@ class Router
 
             $sshResponse = $hardwareData['ssh']->exec('uptime');
 
-            preg_match_all("/ up (.*),  /", $sshResponse, $upTimeArray);
+            preg_match_all("/ up (.*), /", $sshResponse, $upTimeArray);
             if (isset($upTimeArray[1][0])) {
                 $hardwareData['uptime'] = $upTimeArray[1][0];
             } else {
