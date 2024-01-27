@@ -15,7 +15,7 @@ class Config
                 throw new Exception("File not found: $xmlConfigFileName");
             }
 
-            $xml = simplexml_load_file($xmlConfigFileName, SimpleXMLElement::class, LIBXML_NOERROR | LIBXML_NOWARNING);
+            $xml = simplexml_load_file($xmlConfigFileName, SimpleXMLElement::class, options: LIBXML_NOERROR | LIBXML_NOWARNING);
             if ($xml === false) {
                 throw new Exception("Failed to load XML file: $xmlConfigFileName");
             }

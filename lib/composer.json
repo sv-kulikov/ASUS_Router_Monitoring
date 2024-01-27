@@ -2,6 +2,7 @@
     "require": {
         "phpseclib/phpseclib": "~3.0",
       "ext-simplexml": "*",
-      "ext-mbstring": "*"
+      "ext-mbstring": "*",
+      "ext-libxml": "*"
     }
 }
