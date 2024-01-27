@@ -109,6 +109,7 @@ class Router
                     $providerData['TXbytesOnStart'] = $providerData['TXbytes'] ?? 0;
                     $providerData['isOffline'] = false;
                     $providerData['ip'] = '';
+                    $providerData['ipChanges'] = 0;
                     $providerData['idleRXcount'] = 0;
                     $providerData['idleTXcount'] = 0;
                     $this->providersData[$providerKey] = $providerData;
@@ -125,6 +126,7 @@ class Router
         $this->providersData['TOTAL']['TXbytes'] = 0;
         $this->providersData['TOTAL']['isOffline'] = false;
         $this->providersData['TOTAL']['ip'] = '';
+        $this->providersData['TOTAL']['ipChanges'] = 0;
         $this->providersData['TOTAL']['idleRXcount'] = 0;
         $this->providersData['TOTAL']['idleTXcount'] = 0;
 
@@ -153,6 +155,11 @@ class Router
                     $providerData['TXbytesLast'] = $providerData['TXbytes'] ?? 0;
                     $providerData['RXbytes'] = $routerAdapterData['rx'];
                     $providerData['TXbytes'] = $routerAdapterData['tx'];
+
+                    if ($providerData['ip'] != $routerAdapterData['ip']) {
+                        $providerData['ipChanges']++;
+                    }
+
                     $providerData['ip'] = $routerAdapterData['ip'];
                     $providerData['ddns'] = $routerAdapterData['ddns'];
                     $this->providersData[$providerKey] = $providerData;
