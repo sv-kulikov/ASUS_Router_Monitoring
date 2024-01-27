@@ -109,7 +109,7 @@ class Router
                     $providerData['TXbytesOnStart'] = $providerData['TXbytes'] ?? 0;
                     $providerData['isOffline'] = false;
                     $providerData['ip'] = '';
-                    $providerData['ipChanges'] = 0;
+                    $providerData['ipChanges'] = -1; // Initially the IP is empty string. So, we need to set it to -1 to avoid false positive IP changes detection.
                     $providerData['idleRXcount'] = 0;
                     $providerData['idleTXcount'] = 0;
                     $this->providersData[$providerKey] = $providerData;
