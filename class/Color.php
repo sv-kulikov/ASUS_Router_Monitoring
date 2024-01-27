@@ -2,23 +2,28 @@
 
 namespace Sv\Network\VmsRtbw;
 
+/**
+ * Enum for console color codes.
+ */
 enum Color: string
 {
-    case DEFAULT = "\033[39m";
-    case BLACK = "\033[30m";
-    case RED = "\033[31m";
-    case GREEN = "\033[32m";
-    case YELLOW = "\033[33m";
-    case BLUE = "\033[34m";
-    case MAGENTA = "\033[35m";
-    case CYAN = "\033[36m";
-    case LIGHT_GRAY = "\033[37m";
-    case DARK_GRAY = "\033[90m";
-    case LIGHT_RED = "\033[91m";
-    case LIGHT_GREEN = "\033[92m";
-    case LIGHT_YELLOW = "\033[93m";
-    case LIGHT_BLUE = "\033[94m";
-    case LIGHT_MAGENTA = "\033[95m";
-    case LIGHT_CYAN = "\033[96m";
-    case WHITE = "\033[97m";
+    private const ESCAPE = "\033[";
+
+    case DEFAULT = self::ESCAPE . "39m";
+    case BLACK = self::ESCAPE . "30m";
+    case RED = self::ESCAPE . "31m";
+    case GREEN = self::ESCAPE . "32m";
+    case YELLOW = self::ESCAPE . "33m";
+    case BLUE = self::ESCAPE . "34m";
+    case MAGENTA = self::ESCAPE . "35m";
+    case CYAN = self::ESCAPE . "36m";
+    case LIGHT_GRAY = self::ESCAPE . "37m";
+    case DARK_GRAY = self::ESCAPE . "90m";
+    case LIGHT_RED = self::ESCAPE . "91m";
+    case LIGHT_GREEN = self::ESCAPE . "92m";
+    case LIGHT_YELLOW = self::ESCAPE . "93m";
+    case LIGHT_BLUE = self::ESCAPE . "94m";
+    case LIGHT_MAGENTA = self::ESCAPE . "95m";
+    case LIGHT_CYAN = self::ESCAPE . "96m";
+    case WHITE = self::ESCAPE . "97m";
 }
