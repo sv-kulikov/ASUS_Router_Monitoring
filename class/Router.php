@@ -2,6 +2,7 @@
 
 namespace Sv\Network\VmsRtbw;
 
+use Exception;
 use phpseclib3\Net\SSH2;
 
 class Router
@@ -28,7 +29,6 @@ class Router
                 if ($config['repeater']['ip'] != '') {
                     $this->sshClientRepeater = $connectionToRepeater->getConnection($config['repeater']['ip'], $config['repeater']['login'], $config['repeater']['password'], $config['repeater']['port']);
                 }
-                $this->lastRefreshTime = microtime(true);
                 break;
             } catch (Exception) {
                 echo "Something is wrong with the connection to either router or repeater. Waiting for 5 seconds to try again. Attempts left = " . $attemptsLeft . ".\n";
