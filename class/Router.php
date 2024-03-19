@@ -20,9 +20,21 @@ class Router
     {
         $this->config = $config;
         $this->stepsToShow = $stepsToShow;
-        $this->sshClientRouter = $connectionToRouter->getConnection($config['router']['ip'], $config['router']['login'], $config['router']['password'], $config['router']['port']);
-        if ($config['repeater']['ip'] != '') {
-            $this->sshClientRepeater = $connectionToRepeater->getConnection($config['repeater']['ip'], $config['repeater']['login'], $config['repeater']['password'], $config['repeater']['port']);
+
+        $attemptsLeft = 20;
+        while ($attemptsLeft > 0) {
+            try {
+                $this->sshClientRouter = $connectionToRouter->getConnection($config['router']['ip'], $config['router']['login'], $config['router']['password'], $config['router']['port']);
+                if ($config['repeater']['ip'] != '') {
+                    $this->sshClientRepeater = $connectionToRepeater->getConnection($config['repeater']['ip'], $config['repeater']['login'], $config['repeater']['password'], $config['repeater']['port']);
+                }
+                $this->lastRefreshTime = microtime(true);
+                break;
+            } catch (Exception) {
+                echo "Something is wrong with the connection to either router or repeater. Waiting for 5 seconds to try again. Attempts left = " . $attemptsLeft . ".\n";
+                $attemptsLeft--;
+                sleep(5);
+            }
         }
         $this->lastRefreshTime = microtime(true);
     }

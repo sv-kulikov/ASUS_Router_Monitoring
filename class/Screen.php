@@ -32,6 +32,12 @@ class Screen
             preg_match('/CON.*:(\n[^|]+?){2}(?<lines>\d+)/', $screenInfo, $screenHeightInfoArray);
             $this->screenWidth = $screenWidthInfoArray['cols'] - 12 ?? $defaultScreenWidth;
             $this->screenHeight = $screenHeightInfoArray['lines'] ?? $defaultScreenHeight;
+
+            // Patch for cases when scrollable (not visible) screen height is detected.
+            if ($this->screenHeight > 5000) {
+                $this->screenHeight = 36;
+            }
+
             $this->stepsToShow = floor(($this->screenHeight - 20) / 2);
             $this->oneProviderWidth = floor($this->screenWidth / ($providersCount + 1));
         }
@@ -96,7 +102,7 @@ class Screen
         // █ ▓ ▒
     }
 
-    function getLineWithoutGraph($directionLetter, $speedValue, $oneProviderWidth, $speedLengthWithSpace, $paddingSpaces, $color): string
+    function getLineWithoutGraph($directionLetter, $speedValue, $speedLengthWithSpace, $paddingSpaces, $color): string
     {
         $labelToShow = $directionLetter . ' ' . str_pad($this->formatBytes($speedValue) . '/s', $speedLengthWithSpace);
         $labelToShow = str_pad($labelToShow, $this->oneProviderWidth);
@@ -151,7 +157,7 @@ class Screen
                     $providerNameWithData .= ', DDNS';
                 }
                 $providerNameWithData .= ')';
-                $providerNameWithData .= ' (' . $providerData['ipChanges'] . ')';
+                $providerNameWithData .= ' {' . $providerData['ipChanges'] . '}';
             } else {
                 $providerNameWithData = $providerData['providerName'];
             }
@@ -274,7 +280,7 @@ class Screen
         echo $this->getColoredText(str_pad('MIN', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1), Color::RED);
         foreach ($providers as $providerData) {
             echo $this->getArrowByValues($providerData['globalMinRXLast'], $providerData['globalMinRX']);
-            echo $this->getLineWithoutGraph('R', $providerData['globalMinRX'], $this->oneProviderWidth, Screen::SPEED_LENGTH_WITH_SPACE, 0, Color::LIGHT_MAGENTA);
+            echo $this->getLineWithoutGraph('R', $providerData['globalMinRX'], Screen::SPEED_LENGTH_WITH_SPACE, 0, Color::LIGHT_MAGENTA);
         }
 
         echo "\n";
@@ -282,7 +288,7 @@ class Screen
         echo str_repeat(' ', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1);
         foreach ($providers as $providerData) {
             echo $this->getArrowByValues($providerData['globalMinTXLast'], $providerData['globalMinTX']);
-            echo $this->getLineWithoutGraph('T', $providerData['globalMinTX'], $this->oneProviderWidth, Screen::SPEED_LENGTH_WITH_SPACE, 0, Color::LIGHT_CYAN);
+            echo $this->getLineWithoutGraph('T', $providerData['globalMinTX'], Screen::SPEED_LENGTH_WITH_SPACE, 0, Color::LIGHT_CYAN);
         }
 
         echo "\n";
@@ -290,7 +296,7 @@ class Screen
         echo $this->getColoredText(str_pad('MAX', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1), Color::GREEN);
         foreach ($providers as $providerData) {
             echo $this->getArrowByValues($providerData['globalMaxRXLast'], $providerData['globalMaxRX']);
-            echo $this->getLineWithoutGraph('R', $providerData['globalMaxRX'], $this->oneProviderWidth, Screen::SPEED_LENGTH_WITH_SPACE, 0, Color::LIGHT_MAGENTA);
+            echo $this->getLineWithoutGraph('R', $providerData['globalMaxRX'], Screen::SPEED_LENGTH_WITH_SPACE, 0, Color::LIGHT_MAGENTA);
         }
 
         echo "\n";
@@ -298,7 +304,7 @@ class Screen
         echo str_repeat(' ', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1);
         foreach ($providers as $providerData) {
             echo $this->getArrowByValues($providerData['globalMaxTXLast'], $providerData['globalMaxTX']);
-            echo $this->getLineWithoutGraph('T', $providerData['globalMaxTX'], $this->oneProviderWidth, Screen::SPEED_LENGTH_WITH_SPACE, 0, Color::LIGHT_CYAN);
+            echo $this->getLineWithoutGraph('T', $providerData['globalMaxTX'], Screen::SPEED_LENGTH_WITH_SPACE, 0, Color::LIGHT_CYAN);
         }
 
         echo "\n";
@@ -306,7 +312,7 @@ class Screen
         echo $this->getColoredText(str_pad('AVG', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1), Color::WHITE);
         foreach ($providers as $providerData) {
             echo $this->getArrowByValues($providerData['globalAvgRXLast'], $providerData['globalAvgRX']);
-            echo $this->getLineWithoutGraph('R', $providerData['globalAvgRX'], $this->oneProviderWidth, Screen::SPEED_LENGTH_WITH_SPACE, 0, Color::LIGHT_MAGENTA);
+            echo $this->getLineWithoutGraph('R', $providerData['globalAvgRX'], Screen::SPEED_LENGTH_WITH_SPACE, 0, Color::LIGHT_MAGENTA);
         }
 
         echo "\n";
@@ -314,7 +320,7 @@ class Screen
         echo str_repeat(' ', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1);
         foreach ($providers as $providerData) {
             echo $this->getArrowByValues($providerData['globalAvgTXLast'], $providerData['globalAvgTX']);
-            echo $this->getLineWithoutGraph('T', $providerData['globalAvgTX'], $this->oneProviderWidth, Screen::SPEED_LENGTH_WITH_SPACE, 0, Color::LIGHT_CYAN);
+            echo $this->getLineWithoutGraph('T', $providerData['globalAvgTX'], Screen::SPEED_LENGTH_WITH_SPACE, 0, Color::LIGHT_CYAN);
         }
 
         echo "\n";
