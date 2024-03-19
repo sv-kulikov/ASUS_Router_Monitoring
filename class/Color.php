@@ -7,7 +7,7 @@ namespace Sv\Network\VmsRtbw;
  */
 enum Color: string
 {
-    private const ESCAPE = "\033[";
+    private const string ESCAPE = "\033[";
 
     case DEFAULT = self::ESCAPE . "39m";
     case BLACK = self::ESCAPE . "30m";

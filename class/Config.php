@@ -6,8 +6,15 @@ use DateTime;
 use Exception;
 use SimpleXMLElement;
 
+/**
+ * Class Config provides methods to read the application configuration.
+ */
 class Config
 {
+    /**
+     * @param string $xmlConfigFileName Path to the XML configuration file.
+     * @return array Configuration data.
+     */
     public static function getConfigData(string $xmlConfigFileName): array
     {
         try {
