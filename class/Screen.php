@@ -114,7 +114,7 @@ class Screen
     {
         $labelToShow = $directionLetter . ' ' . str_pad($this->formatBytes($trafficValue, 3), $speedLengthWithSpace);
 
-        $trafficPerDay = str_pad((string)$this->formatBytes((int)($totalTrafficValue / $daysSinceStart), 3), 10);
+        $trafficPerDay = str_pad($this->formatBytes((int)($totalTrafficValue / $daysSinceStart), 3), 10);
 
         if (($trafficValue != $totalTrafficValue) && ($totalTrafficValue > 0)) {
             $perc = round(($trafficValue / $totalTrafficValue) * 100, 2);
