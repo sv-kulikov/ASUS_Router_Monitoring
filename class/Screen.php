@@ -34,7 +34,7 @@ class Screen
             $this->screenHeight = $screenHeightInfoArray['lines'] ?? $defaultScreenHeight;
 
             // Patch for cases when scrollable (not visible) screen height is detected.
-            if ($this->screenHeight > 5000) {
+            if ($this->screenHeight > 2000) {
                 $this->screenHeight = 36;
             }
 
@@ -110,12 +110,17 @@ class Screen
             str_repeat(' ', $paddingSpaces);
     }
 
-    function getLineWithTotalTraffic($directionLetter, $trafficValue, $totalTrafficValue, $idleCount, $speedLengthWithSpace, $paddingSpaces, $color): string
+    function getLineWithTotalTraffic($directionLetter, $trafficValue, $totalTrafficValue, $idleCount, $daysSinceStart, $speedLengthWithSpace, $paddingSpaces, $color): string
     {
         $labelToShow = $directionLetter . ' ' . str_pad($this->formatBytes($trafficValue, 3), $speedLengthWithSpace);
+
+        $trafficPerDay = str_pad((string)$this->formatBytes((int)($totalTrafficValue / $daysSinceStart), 3), 10);
+
         if (($trafficValue != $totalTrafficValue) && ($totalTrafficValue > 0)) {
             $perc = round(($trafficValue / $totalTrafficValue) * 100, 2);
             $labelToShow .= str_pad('(' . $perc . ' %)', 10, ' ') . ' (idle ' . $idleCount . ')';
+        } else {
+            $labelToShow .= '(' . $trafficPerDay . ' / day)';
         }
         $labelToShow = str_pad($labelToShow, $this->oneProviderWidth);
         return $this->getColoredText($labelToShow, $color) . str_repeat(' ', $paddingSpaces);
@@ -332,6 +337,8 @@ class Screen
             echo $this->getColoredText(str_pad('Traffic for the last ' . $diff->format('%D d %H:%I:%S'), $this->oneProviderWidth + 1, ' ', STR_PAD_BOTH), Color::LIGHT_GREEN);
         }
 
+        $daysSinceStart = max(1, (int) $diff->format('%D')); // max() is to make sure it is never == 0
+
         echo "\n";
 
         $currentTotalTrafficValueRx = $providers['TOTAL']['RXbytes'] - $providers['TOTAL']['RXbytesOnStart'];
@@ -339,14 +346,14 @@ class Screen
 
         echo $this->getColoredText(str_pad('Recv.', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1), Color::LIGHT_MAGENTA);
         foreach ($providers as $providerData) {
-            echo $this->getLineWithTotalTraffic(' R', $providerData['RXbytes'] - $providerData['RXbytesOnStart'], $currentTotalTrafficValueRx, $providerData['idleRXcount'], Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::LIGHT_MAGENTA);
+            echo $this->getLineWithTotalTraffic(' R', $providerData['RXbytes'] - $providerData['RXbytesOnStart'], $currentTotalTrafficValueRx, $providerData['idleRXcount'], $daysSinceStart, Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::LIGHT_MAGENTA);
         }
 
         echo "\n";
 
         echo $this->getColoredText(str_pad('Trsm.', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1), Color::LIGHT_CYAN);
         foreach ($providers as $providerData) {
-            echo $this->getLineWithTotalTraffic(' T', $providerData['TXbytes'] - $providerData['TXbytesOnStart'], $currentTotalTrafficValueTx, $providerData['idleTXcount'], Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::LIGHT_CYAN);
+            echo $this->getLineWithTotalTraffic(' T', $providerData['TXbytes'] - $providerData['TXbytesOnStart'], $currentTotalTrafficValueTx, $providerData['idleTXcount'], $daysSinceStart, Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::LIGHT_CYAN);
         }
 
     }
