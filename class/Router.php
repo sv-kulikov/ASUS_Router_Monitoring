@@ -118,6 +118,8 @@ class Router
                     $providerData['TXbytesLast'] = $providerData['TXbytes'] ?? 0;
                     $providerData['RXbytesOnStart'] = $providerData['RXbytes'] ?? 0;
                     $providerData['TXbytesOnStart'] = $providerData['TXbytes'] ?? 0;
+                    $providerData['RXbytesAccumulated'] = $providerData['RXbytesAccumulated'] ?? 0;
+                    $providerData['TXbytesAccumulated'] = $providerData['TXbytesAccumulated'] ?? 0;
                     $providerData['isOffline'] = false;
                     $providerData['ip'] = '';
                     $providerData['ipChanges'] = -1; // Initially the IP is empty string. So, we need to set it to -1 to avoid false positive IP changes detection.
@@ -133,6 +135,8 @@ class Router
         $this->providersData['TOTAL']['vpnAdapterName'] = 'TOTAL';
         $this->providersData['TOTAL']['RXbytesLast'] = 0;
         $this->providersData['TOTAL']['TXbytesLast'] = 0;
+        $this->providersData['TOTAL']['RXbytesAccumulated'] = 0;
+        $this->providersData['TOTAL']['TXbytesAccumulated'] = 0;
         $this->providersData['TOTAL']['RXbytes'] = 0;
         $this->providersData['TOTAL']['TXbytes'] = 0;
         $this->providersData['TOTAL']['isOffline'] = false;
@@ -147,6 +151,8 @@ class Router
                 $this->providersData['TOTAL']['TXbytesLast'] += $providerData['TXbytesLast'];
                 $this->providersData['TOTAL']['RXbytes'] += $providerData['RXbytes'];
                 $this->providersData['TOTAL']['TXbytes'] += $providerData['TXbytes'];
+                $this->providersData['TOTAL']['RXbytesAccumulated'] += $providerData['RXbytesAccumulated'];
+                $this->providersData['TOTAL']['TXbytesAccumulated'] += $providerData['TXbytesAccumulated'];
             }
         }
 
@@ -166,6 +172,8 @@ class Router
                     $providerData['TXbytesLast'] = $providerData['TXbytes'] ?? 0;
                     $providerData['RXbytes'] = $routerAdapterData['rx'];
                     $providerData['TXbytes'] = $routerAdapterData['tx'];
+                    $providerData['RXbytesAccumulated'] = $providerData['RXbytes'] - $providerData['RXbytesLast'];
+                    $providerData['TXbytesAccumulated'] = $providerData['TXbytes'] - $providerData['TXbytesLast'];
 
                     if ($providerData['ip'] != $routerAdapterData['ip']) {
                         $providerData['ipChanges']++;
@@ -188,6 +196,8 @@ class Router
             if ($providerData['vpnAdapterName'] != 'TOTAL') {
                 $this->providersData['TOTAL']['RXbytes'] += $providerData['RXbytes'];
                 $this->providersData['TOTAL']['TXbytes'] += $providerData['TXbytes'];
+                $this->providersData['TOTAL']['RXbytesAccumulated'] += $providerData['RXbytesAccumulated'];
+                $this->providersData['TOTAL']['TXbytesAccumulated'] += $providerData['TXbytesAccumulated'];
                 $this->providersData['TOTAL']['RXbytesLast'] += $providerData['RXbytesLast'];
                 $this->providersData['TOTAL']['TXbytesLast'] += $providerData['TXbytesLast'];
             }
@@ -278,7 +288,7 @@ class Router
 
         // Detecting offline ISP
         foreach ($this->providersData as $providerName => $providerData) {
-            if ($providerData['maxRX'] == 0 && $providerData['maxTX'] == 0 && $providerData['minRX'] == 0 && $providerData['minTX'] == 0) {
+            if ((($providerData['maxRX'] == 0) || ($providerData['maxTX'] == 0)) || (($providerData['ip'] == '') && ($providerData['providerName'] != 'TOTAL'))) {
                 $this->providersData[$providerName]['isOffline'] = true;
             } else {
                 $this->providersData[$providerName]['isOffline'] = false;
@@ -310,7 +320,10 @@ class Router
     {
 
         $hardwareDataArray['router']['ssh'] = $this->sshClientRouter;
+        $hardwareDataArray['router']['cpuCores'] = $this->config['router']['cpuCores'];
+
         $hardwareDataArray['repeater']['ssh'] = $this->sshClientRepeater;
+        $hardwareDataArray['repeater']['cpuCores'] = $this->config['repeater']['cpuCores'];
 
         foreach ($hardwareDataArray as $hardwareName => $hardwareData) {
 
@@ -342,18 +355,34 @@ class Router
 
             $sshResponse = $hardwareData['ssh']->exec('uptime');
 
-            preg_match_all("/ up (.*), /", $sshResponse, $upTimeArray);
-            if (isset($upTimeArray[1][0])) {
-                $hardwareData['uptime'] = $upTimeArray[1][0];
+            preg_match_all("/ up\s+(\d+)\s+days,\s+(\d+):(\d+),\s+/", $sshResponse, $upTimeArray, PREG_SET_ORDER);
+            if (isset($upTimeArray[0][0])) {
+                $hardwareData['uptime'] = $upTimeArray[0][0];
+                $hardwareData['uptimeD'] = str_pad($upTimeArray[0][1], 2, '0', STR_PAD_LEFT);
+                $hardwareData['uptimeH'] = str_pad($upTimeArray[0][2], 2, '0', STR_PAD_LEFT);
+                $hardwareData['uptimeI'] = str_pad($upTimeArray[0][3], 2, '0', STR_PAD_LEFT);
+                $hardwareData['uptimePretty'] = $hardwareData['uptimeD'] . '.' . $hardwareData['uptimeH'] . ':' . $hardwareData['uptimeI'];
             } else {
                 $hardwareData['uptime'] = 'n/a';
+                $hardwareData['uptimeD'] = '-';
+                $hardwareData['uptimeH'] = '-';
+                $hardwareData['uptimeI'] = '-';
+                $hardwareData['uptimePretty'] = '-.-:-';
             }
 
-            preg_match_all("/load average: (.*)/", $sshResponse, $loadAverageArray);
-            if (isset($loadAverageArray[1][0])) {
-                $hardwareData['loadAverage'] = $loadAverageArray[1][0];
+            preg_match_all("/load average:\s+([\d,.]+),\s+([\d,.]+),\s+([\d,.]+)/", $sshResponse, $loadAverageArray, PREG_SET_ORDER);
+            if (isset($loadAverageArray[0][0])) {
+                $hardwareData['loadAverage'] = $loadAverageArray[0][0];
+                $hardwareData['loadAverage1i'] = $loadAverageArray[0][1];
+                $hardwareData['loadAverage5i'] = $loadAverageArray[0][2];
+                $hardwareData['loadAverage15i'] = $loadAverageArray[0][3];
+                $hardwareData['loadAverageNow'] = 100 * round((float)$hardwareData['loadAverage1i'] / (float)$hardwareData['cpuCores'],2);
             } else {
                 $hardwareData['loadAverage'] = 'n/a';
+                $hardwareData['loadAverage1i'] = '-';
+                $hardwareData['loadAverage5i'] = '-';
+                $hardwareData['loadAverage15i'] = '-';
+                $hardwareData['loadAverageNow'] = '-';
             }
 
             $hardwareDataArray[$hardwareName] = $hardwareData;

@@ -5,12 +5,14 @@
         <login>login1</login>
         <password>password1</password>
         <port>22</port>
+        <cpuCores>4</cpuCores>
     </router>
     <repeater>
         <ip>192.168.1.2</ip>
         <login>login2</login>
         <password>password2</password>
         <port>22</port>
+        <cpuCores>2</cpuCores>
     </repeater>
     <settings>
         <refreshRate>5</refreshRate>

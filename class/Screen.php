@@ -156,29 +156,48 @@ class Screen
             }
 
             if ($providerData['ip'] != '') {
-                $providerNameWithData = $providerData['providerName'];
-                $providerNameWithData .= ' (' . $providerData['ip'];
+                $providerNameWithData = $this->getColoredText($providerData['providerName'], Color::LIGHT_GREEN);
+                $providerNameWithData .= $this->getColoredText(' (' . $providerData['ip'], Color::LIGHT_GREEN);
                 if ($providerData['ddns'] ?? false) {
-                    $providerNameWithData .= ', DDNS';
+                    $providerNameWithData .= ', ' . $this->getColoredText('DDNS', Color::WHITE);
                 }
-                $providerNameWithData .= ')';
-                $providerNameWithData .= ' {' . $providerData['ipChanges'] . '}';
+                $providerNameWithData .= $this->getColoredText(')', Color::LIGHT_GREEN);
+                if ($providerData['ipChanges'] == 0) {
+                    $providerNameWithData .= $this->getColoredText(' {' . $providerData['ipChanges'] . '}', Color::LIGHT_GREEN);
+                } else {
+                    $providerNameWithData .= $this->getColoredText(' {' . $providerData['ipChanges'] . '}', Color::LIGHT_YELLOW);
+                }
             } else {
-                $providerNameWithData = $providerData['providerName'];
+                $providerNameWithData = $this->getColoredText($providerData['providerName'], Color::LIGHT_GREEN);
             }
 
             if ($providerData['providerName'] == 'TOTAL') {
-                $providerNameWithData = 'TOTAL (';
+                $providerNameWithData = '   ';
                 foreach ($hardware as $hardwareItem) {
-                    $providerNameWithData .= $hardwareItem['cpu_temp'] . '°C, ';
+                    if ($hardwareItem['cpu_temp_max'] >= 60) {
+                        $providerNameWithData .= $this->getColoredText($hardwareItem['cpu_temp'] . '°C ', Color::LIGHT_YELLOW);
+                    } else {
+                        $providerNameWithData .= $this->getColoredText($hardwareItem['cpu_temp'] . '°C ', Color::LIGHT_GREEN);
+                    }
+                    if ($hardwareItem['loadAverageNow'] >= 60) {
+                        $providerNameWithData .= $this->getColoredText($hardwareItem['loadAverageNow'] . '% ', Color::LIGHT_YELLOW);
+                    } else {
+                        $providerNameWithData .= $this->getColoredText($hardwareItem['loadAverageNow'] . '% ', Color::LIGHT_GREEN);
+                    }
+                    $providerNameWithData .= $this->getColoredText($hardwareItem['uptimePretty'], Color::WHITE);
+                    $providerNameWithData .= $this->getColoredText(', ', Color::LIGHT_GRAY);
                 }
-                $providerNameWithData = substr($providerNameWithData, 0, -2) . ')';
+                $providerNameWithData = substr_replace($providerNameWithData, '', strrpos($providerNameWithData, ', '), 2);
             }
 
+            $providerNameWithDataNoANSI = preg_replace('/\e\[[0-9;]*m/', '', $providerNameWithData);
+
             if ($providerData['isOffline']) {
-                echo $this->getColoredText(str_pad($providerNameWithData, $this->oneProviderWidth, ' ', STR_PAD_BOTH), Color::LIGHT_RED);
+                echo $this->getColoredText(str_pad($providerNameWithDataNoANSI, $this->oneProviderWidth + 1, ' ', STR_PAD_BOTH), Color::LIGHT_RED);
             } else {
-                echo $this->getColoredText(str_pad($providerNameWithData, $this->oneProviderWidth, ' ', STR_PAD_BOTH), Color::LIGHT_GREEN);
+                $padSpacesCount = max(0, (int)(($this->oneProviderWidth + 1 - strlen($providerNameWithDataNoANSI)) / 2));
+                $padSpaces = str_repeat(' ', $padSpacesCount);
+                echo $padSpaces . $providerNameWithData . $padSpaces;
             }
         }
         echo "\n";
@@ -341,19 +360,16 @@ class Screen
 
         echo "\n";
 
-        $currentTotalTrafficValueRx = $providers['TOTAL']['RXbytes'] - $providers['TOTAL']['RXbytesOnStart'];
-        $currentTotalTrafficValueTx = $providers['TOTAL']['TXbytes'] - $providers['TOTAL']['TXbytesOnStart'];
-
         echo $this->getColoredText(str_pad('Recv.', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1), Color::LIGHT_MAGENTA);
         foreach ($providers as $providerData) {
-            echo $this->getLineWithTotalTraffic(' R', $providerData['RXbytes'] - $providerData['RXbytesOnStart'], $currentTotalTrafficValueRx, $providerData['idleRXcount'], $daysSinceStart, Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::LIGHT_MAGENTA);
+            echo $this->getLineWithTotalTraffic(' R', $providerData['RXbytesAccumulated'], $providers['TOTAL']['RXbytesAccumulated'], $providerData['idleRXcount'], $daysSinceStart, Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::LIGHT_MAGENTA);
         }
 
         echo "\n";
 
         echo $this->getColoredText(str_pad('Trsm.', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1), Color::LIGHT_CYAN);
         foreach ($providers as $providerData) {
-            echo $this->getLineWithTotalTraffic(' T', $providerData['TXbytes'] - $providerData['TXbytesOnStart'], $currentTotalTrafficValueTx, $providerData['idleTXcount'], $daysSinceStart, Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::LIGHT_CYAN);
+            echo $this->getLineWithTotalTraffic(' T', $providerData['TXbytesAccumulated'], $providers['TOTAL']['TXbytesAccumulated'], $providerData['idleTXcount'], $daysSinceStart, Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::LIGHT_CYAN);
         }
 
     }

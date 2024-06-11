@@ -5,9 +5,7 @@ namespace Sv\Network\VmsRtbw;
 require __DIR__ . '/' . 'lib/vendor/autoload.php';
 require __DIR__ . '/' . 'class/autoload.php';
 
-use DateTime;
 use Exception;
-use phpseclib3\Net\SSH2;
 
 // Getting all settings
 if (is_readable(__DIR__ . '/../' . 'ASUS_Router_Monitoring.xml')) {
