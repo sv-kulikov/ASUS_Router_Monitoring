@@ -172,8 +172,8 @@ class Router
                     $providerData['TXbytesLast'] = $providerData['TXbytes'] ?? 0;
                     $providerData['RXbytes'] = $routerAdapterData['rx'];
                     $providerData['TXbytes'] = $routerAdapterData['tx'];
-                    $providerData['RXbytesAccumulated'] = $providerData['RXbytes'] - $providerData['RXbytesLast'];
-                    $providerData['TXbytesAccumulated'] = $providerData['TXbytes'] - $providerData['TXbytesLast'];
+                    $providerData['RXbytesAccumulated'] += ($providerData['RXbytes'] - $providerData['RXbytesLast']);
+                    $providerData['TXbytesAccumulated'] += ($providerData['TXbytes'] - $providerData['TXbytesLast']);
 
                     if ($providerData['ip'] != $routerAdapterData['ip']) {
                         $providerData['ipChanges']++;
