@@ -191,6 +191,8 @@ class Router
         $this->providersData['TOTAL']['TXbytesLast'] = 0;
         $this->providersData['TOTAL']['RXbytes'] = 0;
         $this->providersData['TOTAL']['TXbytes'] = 0;
+        $this->providersData['TOTAL']['RXbytesAccumulated'] = 0;
+        $this->providersData['TOTAL']['TXbytesAccumulated'] = 0;
 
         foreach ($this->providersData as $providerData) {
             if ($providerData['vpnAdapterName'] != 'TOTAL') {
@@ -302,6 +304,7 @@ class Router
         }
 
         $this->providersData['TOTAL']['globalMaxSpeed'] = $globalMaxSpeed;
+
     }
 
 
