@@ -1,5 +1,6 @@
-# ASUS_Router_Monitoring
-Console utility to monitor ASUS DualWAN routers traffic and speed
+# ASUS Router Monitoring
+Console utility to monitor ASUS DualWAN routers traffic and speed.
+It also shows WAN and LAN ports statuses and speed.
 
 **Usage:**
 1. Make adjustments to your "ASUS_Router_Monitoring.xml_sample" (login(s). password(s), ip(s)).

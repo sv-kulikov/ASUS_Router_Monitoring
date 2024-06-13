@@ -30,8 +30,19 @@ if (isset($argv[1]) && $argv[1] == 'demo') {
 $screen = new Screen($config);
 $screen->detectScreenParameters();
 $screen->clearScreen();
-echo "Started. Screen width = " . $screen->getScreenWidth() . ", screen height = " . $screen->getScreenHeight() . ". Going to keep showing " . $screen->getStepsToShow() . " steps. Waiting for " . $config['settings']['refreshRate'] . " seconds to collect data...";
 
+if ($config['settings']['demo']) {
+    echo "Demo mode activated. Provider's names and IPs are hidden.\n";
+}
+
+if ($config['isAdmin']) {
+    echo "Started in admin (root) mode. Network management is available (but not yet implemented :) ).\n";
+} else {
+    echo "Started in user mode. Network management is not available (no worries, it is not yet implemented :) ).\n";
+}
+
+echo "Screen width = " . $screen->getScreenWidth() . ", screen height = " . $screen->getScreenHeight() . ". Going to keep showing " . $screen->getStepsToShow() . " steps.\n";
+echo "Going to wait for " . $config['settings']['refreshRate'] . " seconds to collect data after establishing connection to device(s)...\n";
 // Global loop
 while (true) {
     $connectionToRouter = new Connection();
@@ -53,7 +64,7 @@ while (true) {
         }
     } catch (Exception) {
         $screen->clearScreen();
-        echo "Router seems to be offline. Waiting for " . $config['settings']['refreshRate'] . " seconds to try again...";
+        echo "Router seems to be offline. Waiting for " . $config['settings']['refreshRate'] . " seconds to try again...\n";
         sleep($config['settings']['refreshRate']);
     }
 }

@@ -172,22 +172,24 @@ class Screen
             }
 
             if ($providerData['providerName'] == 'TOTAL') {
-                $providerNameWithData = '   ';
-                foreach ($hardware as $hardwareItem) {
-                    if ($hardwareItem['cpu_temp_max'] >= 60) {
-                        $providerNameWithData .= $this->getColoredText($hardwareItem['cpu_temp'] . '°C ', Color::LIGHT_YELLOW);
-                    } else {
-                        $providerNameWithData .= $this->getColoredText($hardwareItem['cpu_temp'] . '°C ', Color::LIGHT_GREEN);
+                if ($this->config['settings']['showDetailedDevicesData'] == 'N') {
+                    $providerNameWithData = ' ';
+                    foreach ($hardware as $hardwareItem) {
+                        if ($hardwareItem['cpu_temp_max'] >= 60) {
+                            $providerNameWithData .= $this->getColoredText($hardwareItem['cpu_temp'] . '°C ', Color::LIGHT_YELLOW);
+                        } else {
+                            $providerNameWithData .= $this->getColoredText($hardwareItem['cpu_temp'] . '°C ', Color::LIGHT_GREEN);
+                        }
+                        if ($hardwareItem['loadAverageNow'] >= 60) {
+                            $providerNameWithData .= $this->getColoredText($hardwareItem['loadAverageNow'] . '% ', Color::LIGHT_YELLOW);
+                        } else {
+                            $providerNameWithData .= $this->getColoredText($hardwareItem['loadAverageNow'] . '% ', Color::LIGHT_GREEN);
+                        }
+                        $providerNameWithData .= $this->getColoredText($hardwareItem['uptimePretty'], Color::WHITE);
+                        $providerNameWithData .= $this->getColoredText(', ', Color::LIGHT_GRAY);
                     }
-                    if ($hardwareItem['loadAverageNow'] >= 60) {
-                        $providerNameWithData .= $this->getColoredText($hardwareItem['loadAverageNow'] . '% ', Color::LIGHT_YELLOW);
-                    } else {
-                        $providerNameWithData .= $this->getColoredText($hardwareItem['loadAverageNow'] . '% ', Color::LIGHT_GREEN);
-                    }
-                    $providerNameWithData .= $this->getColoredText($hardwareItem['uptimePretty'], Color::WHITE);
-                    $providerNameWithData .= $this->getColoredText(', ', Color::LIGHT_GRAY);
+                    $providerNameWithData = substr_replace($providerNameWithData, '', strrpos($providerNameWithData, ', '), 2);
                 }
-                $providerNameWithData = substr_replace($providerNameWithData, '', strrpos($providerNameWithData, ', '), 2);
             }
 
             $providerNameWithDataNoANSI = preg_replace('/\e\[[0-9;]*m/', '', $providerNameWithData);
@@ -239,65 +241,70 @@ class Screen
         echo str_repeat(' ', $this->screenWidth + Screen::TIME_STAMP_LENGTH_WITH_SPACE + 1);
         echo "\n";
 
-        // Printing current MIN/MAX/AVG
-        echo $this->getColoredText(str_pad('MIN', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1), Color::RED);
-        foreach ($providers as $providerData) {
-            echo $this->getArrowByValues($providerData['minRXlast'], $providerData['minRX']);
-            echo $this->getBar('R', $providerData['minRX'], $providers['TOTAL']['globalMaxSpeed'], $this->oneProviderWidth, Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::LIGHT_MAGENTA);
+        if ($this->config['settings']['showCurrentMinMaxAvg'] == 'Y') {
+            // Printing current MIN/MAX/AVG
+            echo $this->getColoredText(str_pad('MIN', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1), Color::RED);
+            foreach ($providers as $providerData) {
+                echo $this->getArrowByValues($providerData['minRXlast'], $providerData['minRX']);
+                echo $this->getBar('R', $providerData['minRX'], $providers['TOTAL']['globalMaxSpeed'], $this->oneProviderWidth, Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::LIGHT_MAGENTA);
+            }
+
+            echo "\n";
+
+            echo str_repeat(' ', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1);
+            foreach ($providers as $providerData) {
+                echo $this->getArrowByValues($providerData['minTXlast'], $providerData['minTX']);
+                echo $this->getBar('T', $providerData['minTX'], $providers['TOTAL']['globalMaxSpeed'], $this->oneProviderWidth, Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::LIGHT_CYAN);
+            }
+
+            echo "\n";
+
+            echo $this->getColoredText(str_pad('MAX', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1), Color::GREEN);
+            foreach ($providers as $providerData) {
+                echo $this->getArrowByValues($providerData['maxRXlast'], $providerData['maxRX']);
+                echo $this->getBar('R', $providerData['maxRX'], $providers['TOTAL']['globalMaxSpeed'], $this->oneProviderWidth, Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::LIGHT_MAGENTA);
+            }
+
+            echo "\n";
+
+            echo str_repeat(' ', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1);
+            foreach ($providers as $providerData) {
+                echo $this->getArrowByValues($providerData['maxTXlast'], $providerData['maxTX']);
+                echo $this->getBar('T', $providerData['maxTX'], $providers['TOTAL']['globalMaxSpeed'], $this->oneProviderWidth, Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::LIGHT_CYAN);
+            }
+
+            echo "\n";
+
+            echo $this->getColoredText(str_pad('AVG', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1), Color::WHITE);
+            foreach ($providers as $providerData) {
+                echo $this->getArrowByValues($providerData['avgRXlast'], $providerData['avgRX']);
+                echo $this->getBar('R', $providerData['avgRX'], $providers['TOTAL']['globalMaxSpeed'], $this->oneProviderWidth, Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::LIGHT_MAGENTA);
+            }
+
+            echo "\n";
+
+            echo str_repeat(' ', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1);
+            foreach ($providers as $providerData) {
+                echo $this->getArrowByValues($providerData['avgTXlast'], $providerData['avgTX']);
+                echo $this->getBar('T', $providerData['avgTX'], $providers['TOTAL']['globalMaxSpeed'], $this->oneProviderWidth, Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::LIGHT_CYAN);
+            }
+
+            echo "\n";
+            echo str_repeat(' ', $this->screenWidth + Screen::TIME_STAMP_LENGTH_WITH_SPACE + 1);
+            echo "\n";
         }
-
-        echo "\n";
-
-        echo str_repeat(' ', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1);
-        foreach ($providers as $providerData) {
-            echo $this->getArrowByValues($providerData['minTXlast'], $providerData['minTX']);
-            echo $this->getBar('T', $providerData['minTX'], $providers['TOTAL']['globalMaxSpeed'], $this->oneProviderWidth, Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::LIGHT_CYAN);
-        }
-
-        echo "\n";
-
-        echo $this->getColoredText(str_pad('MAX', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1), Color::GREEN);
-        foreach ($providers as $providerData) {
-            echo $this->getArrowByValues($providerData['maxRXlast'], $providerData['maxRX']);
-            echo $this->getBar('R', $providerData['maxRX'], $providers['TOTAL']['globalMaxSpeed'], $this->oneProviderWidth, Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::LIGHT_MAGENTA);
-        }
-
-        echo "\n";
-
-        echo str_repeat(' ', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1);
-        foreach ($providers as $providerData) {
-            echo $this->getArrowByValues($providerData['maxTXlast'], $providerData['maxTX']);
-            echo $this->getBar('T', $providerData['maxTX'], $providers['TOTAL']['globalMaxSpeed'], $this->oneProviderWidth, Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::LIGHT_CYAN);
-        }
-
-        echo "\n";
-
-        echo $this->getColoredText(str_pad('AVG', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1), Color::WHITE);
-        foreach ($providers as $providerData) {
-            echo $this->getArrowByValues($providerData['avgRXlast'], $providerData['avgRX']);
-            echo $this->getBar('R', $providerData['avgRX'], $providers['TOTAL']['globalMaxSpeed'], $this->oneProviderWidth, Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::LIGHT_MAGENTA);
-        }
-
-        echo "\n";
-
-        echo str_repeat(' ', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1);
-        foreach ($providers as $providerData) {
-            echo $this->getArrowByValues($providerData['avgTXlast'], $providerData['avgTX']);
-            echo $this->getBar('T', $providerData['avgTX'], $providers['TOTAL']['globalMaxSpeed'], $this->oneProviderWidth, Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::LIGHT_CYAN);
-        }
-
-        echo "\n";
-        echo str_repeat(' ', $this->screenWidth + Screen::TIME_STAMP_LENGTH_WITH_SPACE + 1);
-        echo "\n";
 
         // Printing overall MIN/MAX/AVG
         $currentDateTime = new DateTime();
         $diff = $this->config['globalStartDateTime']->diff($currentDateTime);
-
         echo str_repeat(' ', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1);
-        foreach ($providers as $ignored) {
-            echo $this->getColoredText(str_pad('For the last ' . $diff->format('%D d %H:%I:%S'), $this->oneProviderWidth + 1, ' ', STR_PAD_BOTH), Color::LIGHT_GREEN);
-        }
+        $statsLabelLine = 'Cumulative statistics for the last ' . $diff->format('%D d %H:%I:%S');
+        $statsLabelStripeLength = (int)$this->config['settings']['screenWidth'] - strlen($statsLabelLine);
+        $statsLabelStripeLength = (int)($statsLabelStripeLength / 2);
+        $statsLabelStripe = str_repeat('-', $statsLabelStripeLength);
+        echo $this->getColoredText($statsLabelStripe, Color::GREEN);
+        echo '  ' . $this->getColoredText($statsLabelLine, Color::LIGHT_GREEN) . '  ';
+        echo $this->getColoredText($statsLabelStripe, Color::GREEN);
 
         echo "\n";
 
@@ -352,11 +359,16 @@ class Screen
         echo "\n";
 
         echo str_repeat(' ', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1);
-        foreach ($providers as $ignored) {
-            echo $this->getColoredText(str_pad('Traffic for the last ' . $diff->format('%D d %H:%I:%S'), $this->oneProviderWidth + 1, ' ', STR_PAD_BOTH), Color::LIGHT_GREEN);
-        }
 
-        $daysSinceStart = max(1, (int) $diff->format('%D')); // max() is to make sure it is never == 0
+        $statsLabelLine = 'Cumulative traffic for the last ' . $diff->format('%D d %H:%I:%S');
+        $statsLabelStripeLength = (int)$this->config['settings']['screenWidth'] - strlen($statsLabelLine);
+        $statsLabelStripeLength = (int)($statsLabelStripeLength / 2);
+        $statsLabelStripe = str_repeat('-', $statsLabelStripeLength);
+        echo $this->getColoredText($statsLabelStripe, Color::GREEN);
+        echo '  ' . $this->getColoredText($statsLabelLine, Color::LIGHT_GREEN) . '  ';
+        echo $this->getColoredText($statsLabelStripe, Color::GREEN);
+
+        $daysSinceStart = max(1, (int)$diff->format('%D')); // max() is to make sure it is never == 0
 
         echo "\n";
 
@@ -372,6 +384,151 @@ class Screen
             echo $this->getLineWithTotalTraffic(' T', $providerData['TXbytesAccumulated'], $providers['TOTAL']['TXbytesAccumulated'], $providerData['idleTXcount'], $daysSinceStart, Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::LIGHT_CYAN);
         }
 
+        if ($this->config['settings']['showDetailedDevicesData'] == 'Y') {
+            echo "\n";
+            echo str_repeat(' ', $this->screenWidth + Screen::TIME_STAMP_LENGTH_WITH_SPACE + 1);
+            echo "\n";
+
+            echo str_repeat(' ', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1);
+
+            $statsLabelLine = 'Physical Devices Information';
+            $statsLabelStripeLength = (int)$this->config['settings']['screenWidth'] - strlen($statsLabelLine);
+            $statsLabelStripeLength = (int)($statsLabelStripeLength / 2);
+            $statsLabelStripe = str_repeat('-', $statsLabelStripeLength);
+            echo $this->getColoredText($statsLabelStripe, Color::GREEN);
+            echo '  ' . $this->getColoredText($statsLabelLine, Color::LIGHT_GREEN) . '  ';
+            echo $this->getColoredText($statsLabelStripe, Color::GREEN);
+
+            echo "\n";
+
+            echo str_repeat(' ', Screen::TIME_STAMP_LENGTH_WITH_SPACE + 1);
+
+            for ($i = 1; $i <= 3; $i++) {
+                echo $this->getColoredText('WAN' . $i . ' ', Color::LIGHT_GRAY);
+            }
+
+            echo '   ';
+            for ($i = 1; $i <= 8; $i++) {
+                echo $this->getColoredText('LAN' . $i . ' ', Color::LIGHT_GRAY);
+            }
+            echo '   ';
+            echo $this->getColoredText('CLIENTS ', Color::LIGHT_GRAY);
+            echo $this->getColoredText('TEMPERATURE ', Color::LIGHT_GRAY);
+            echo $this->getColoredText('LOAD1 ', Color::LIGHT_GRAY);
+            echo $this->getColoredText('LOAD5 ', Color::LIGHT_GRAY);
+            echo $this->getColoredText('LOAD15 ', Color::LIGHT_GRAY);
+            echo $this->getColoredText('UPTIME ', Color::LIGHT_GRAY);
+            echo str_repeat(' ', 16);
+
+            echo "\n";
+
+            // Print ports data
+            foreach ($hardware as $hardwareData) {
+                echo $this->getColoredText(str_pad($hardwareData['deviceName'], Screen::TIME_STAMP_LENGTH_WITH_SPACE + 1, ' ', STR_PAD_RIGHT), Color::WHITE);
+
+                $portsProcessed = 0;
+                foreach ($hardwareData['hooksResults']['get_wan_lan_status()']['get_wan_lan_status']['portSpeed'] as $portName => $portSpeed) {
+                    if (!str_contains($portName, 'LAN')) {
+                        echo $this->portStateToColoredLabel($portSpeed) . ' ';
+                        $portsProcessed++;
+                    }
+                }
+
+                if ($portsProcessed < 3) {
+                    echo str_repeat(' ', 5);
+                }
+
+                echo '   ';
+
+                foreach ($hardwareData['hooksResults']['get_wan_lan_status()']['get_wan_lan_status']['portSpeed'] as $portName => $portSpeed) {
+                    if (str_contains($portName, 'LAN')) {
+                        echo $this->portStateToColoredLabel($portSpeed) . ' ';
+                    }
+                }
+
+                echo '   ';
+
+                // Print clients data
+                $clientsList = $hardwareData['hooksResults']['get_allclientlist()']['get_allclientlist'] ?? [];
+                $clientsList = reset($clientsList);
+                $clientsCount = count($clientsList['wired_mac'] ?? []);
+                echo $this->getColoredText(str_pad($clientsCount, 8, ' ', STR_PAD_RIGHT), Color::WHITE);
+
+                // Print temperature data
+                if ($hardwareData['cpu_temp_max'] >= 60) {
+                    echo $this->getColoredText(str_pad($hardwareData['cpu_temp'] . '°C', 13, ' ', STR_PAD_RIGHT), Color::LIGHT_YELLOW);
+                } else {
+                    echo $this->getColoredText(str_pad($hardwareData['cpu_temp'] . '°C', 13, ' ', STR_PAD_RIGHT), Color::LIGHT_GREEN);
+                }
+
+                // Print load data
+                if ($hardwareData['loadAverage1iPerc'] >= 60) {
+                    echo $this->getColoredText(str_pad($hardwareData['loadAverage1iPerc'] . '%', 6, ' ', STR_PAD_RIGHT), Color::LIGHT_YELLOW);
+                } else {
+                    echo $this->getColoredText(str_pad($hardwareData['loadAverage1iPerc'] . '%', 6, ' ', STR_PAD_RIGHT), Color::LIGHT_GREEN);
+                }
+
+                if ($hardwareData['loadAverage5iPerc'] >= 60) {
+                    echo $this->getColoredText(str_pad($hardwareData['loadAverage5iPerc'] . '%', 6, ' ', STR_PAD_RIGHT), Color::LIGHT_YELLOW);
+                } else {
+                    echo $this->getColoredText(str_pad($hardwareData['loadAverage5iPerc'] . '%', 6, ' ', STR_PAD_RIGHT), Color::LIGHT_GREEN);
+                }
+
+                if ($hardwareData['loadAverage15iPerc'] >= 60) {
+                    echo $this->getColoredText(str_pad($hardwareData['loadAverage15iPerc'] . '%', 7, ' ', STR_PAD_RIGHT), Color::LIGHT_YELLOW);
+                } else {
+                    echo $this->getColoredText(str_pad($hardwareData['loadAverage15iPerc'] . '%', 7, ' ', STR_PAD_RIGHT), Color::LIGHT_GREEN);
+                }
+
+                // Print uptime data
+                echo $this->getColoredText($hardwareData['uptimePrettyLong'], Color::WHITE);
+
+                echo "\n";
+            }
+        }
+    }
+
+    private function portStateToColoredLabel(string $portState): string
+    {
+        switch ($portState) {
+            case 'M':
+                return $this->getColoredText('100M', Color::GREEN);
+            case 'G':
+                return $this->getColoredText('1.0G', Color::LIGHT_GREEN);
+            case 'Q':
+                return $this->getColoredText('2.5G', Color::LIGHT_CYAN);
+            case 'F':
+                return $this->getColoredText('5.0G', Color::LIGHT_CYAN);
+            case 'T':
+                return $this->getColoredText('10.G', Color::LIGHT_CYAN);
+            case 'X':
+                return $this->getColoredText('----', Color::LIGHT_GRAY);
+            default:
+                return $this->getColoredText('????', Color::LIGHT_YELLOW);
+        }
+    }
+
+    private function getClientsCount(array $clientsData): array
+    {
+        $totalClients = 0;
+        $wiredClients = 0;
+        $wifiClients = 0;
+        foreach ($clientsData as $clientName => $clientData) {
+            if (preg_match('/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/', $clientName) === 1) {
+                if ((int)($clientData['isOnline'] ?? 0) > 0) {
+                    $totalClients++;
+                    if ((int)($clientData['isWL'] ?? 0) > 0) {
+                        $wiredClients++;
+                        echo $clientData['vendor'];
+                    }
+                    if ((int)($clientData['isGN'] ?? 0) > 0) {
+                        $wiredClients++;
+                    }
+                }
+            }
+        }
+
+        return array('totalClients' => $totalClients, 'wiredClients' => $wiredClients, 'wifiClients' => $wifiClients);
     }
 
 }

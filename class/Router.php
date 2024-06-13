@@ -9,6 +9,8 @@ class Router
 {
     private SSH2 $sshClientRouter;
     private SSH2 $sshClientRepeater;
+    private Hooks $hooksRouter;
+    private Hooks $hooksRepeater;
     private array $adaptersData = array();
     private array $providersData = array();
     private array $hardwareData = array();
@@ -26,8 +28,27 @@ class Router
         while ($attemptsLeft > 0) {
             try {
                 $this->sshClientRouter = $connectionToRouter->getConnection($config['router']['ip'], $config['router']['login'], $config['router']['password'], $config['router']['port']);
+                if ($config['settings']['demo']) {
+                    $this->config['router']['deviceName'] = 'Router';
+                } else {
+                    $this->config['router']['deviceName'] = str_replace(["\n", "\r"], "", $this->sshClientRouter->exec('nvram get wps_device_name'));
+                }
+                echo "Connected to router: " . $this->config['router']['deviceName'] . "\n";
+                if ($this->config['settings']['showDetailedDevicesData'] == 'Y') {
+                    $this->hooksRouter = new Hooks($config['router']['ip'], $config['router']['login'], $config['router']['password']);
+                }
+
                 if ($config['repeater']['ip'] != '') {
                     $this->sshClientRepeater = $connectionToRepeater->getConnection($config['repeater']['ip'], $config['repeater']['login'], $config['repeater']['password'], $config['repeater']['port']);
+                    if ($config['settings']['demo']) {
+                        $this->config['repeater']['deviceName'] = 'Repeater';
+                    } else {
+                        $this->config['repeater']['deviceName'] = str_replace(["\n", "\r"], "", $this->sshClientRepeater->exec('nvram get wps_device_name'));
+                    }
+                    echo "Connected to repeater: " . $this->config['repeater']['deviceName'] . "\n";
+                    if ($this->config['settings']['showDetailedDevicesData'] == 'Y') {
+                        $this->hooksRepeater = new Hooks($config['repeater']['ip'], $config['repeater']['login'], $config['repeater']['password']);
+                    }
                 }
                 break;
             } catch (Exception) {
@@ -323,10 +344,14 @@ class Router
     {
 
         $hardwareDataArray['router']['ssh'] = $this->sshClientRouter;
+        $hardwareDataArray['router']['hooks'] = $this->hooksRouter;
         $hardwareDataArray['router']['cpuCores'] = $this->config['router']['cpuCores'];
+        $hardwareDataArray['router']['deviceName'] = $this->config['router']['deviceName'];
 
         $hardwareDataArray['repeater']['ssh'] = $this->sshClientRepeater;
+        $hardwareDataArray['repeater']['hooks'] = $this->hooksRepeater;
         $hardwareDataArray['repeater']['cpuCores'] = $this->config['repeater']['cpuCores'];
+        $hardwareDataArray['repeater']['deviceName'] = $this->config['repeater']['deviceName'];
 
         foreach ($hardwareDataArray as $hardwareName => $hardwareData) {
 
@@ -356,21 +381,34 @@ class Router
                 $hardwareData['cpu_temp'] = $hardwareData['cpu_temp_min'] . '-' . $hardwareData['cpu_temp_max'];
             }
 
-            $sshResponse = $hardwareData['ssh']->exec('uptime');
+            $sshResponse = $hardwareData['ssh']->exec('uptime; cat /proc/uptime');
 
-            preg_match_all("/ up\s+(\d+)\s+days,\s+(\d+):(\d+),\s+/", $sshResponse, $upTimeArray, PREG_SET_ORDER);
+            preg_match_all("/^[\d,.]+\s+/imsu", $sshResponse, $upTimeArray, PREG_SET_ORDER);
             if (isset($upTimeArray[0][0])) {
-                $hardwareData['uptime'] = $upTimeArray[0][0];
-                $hardwareData['uptimeD'] = str_pad($upTimeArray[0][1], 2, '0', STR_PAD_LEFT);
-                $hardwareData['uptimeH'] = str_pad($upTimeArray[0][2], 2, '0', STR_PAD_LEFT);
-                $hardwareData['uptimeI'] = str_pad($upTimeArray[0][3], 2, '0', STR_PAD_LEFT);
+                $hardwareData['uptime'] = round((double)$upTimeArray[0][0]);
+
+                // Calculating D.H:I:S uptime
+                $days = floor($hardwareData['uptime'] / 86400);
+                $seconds = $hardwareData['uptime'] % 86400;
+                $hours = floor($seconds / 3600);
+                $seconds = $seconds % 3600;
+                $minutes = floor($seconds / 60);
+                $seconds = $seconds % 60;
+
+                $hardwareData['uptimeD'] = str_pad($days, 2, '0', STR_PAD_LEFT);
+                $hardwareData['uptimeH'] = str_pad($hours, 2, '0', STR_PAD_LEFT);
+                $hardwareData['uptimeI'] = str_pad($minutes, 2, '0', STR_PAD_LEFT);
+                $hardwareData['uptimeS'] = str_pad($seconds, 2, '0', STR_PAD_LEFT);
                 $hardwareData['uptimePretty'] = $hardwareData['uptimeD'] . '.' . $hardwareData['uptimeH'] . ':' . $hardwareData['uptimeI'];
+                $hardwareData['uptimePrettyLong'] = $hardwareData['uptimeD'] . ' d ' . $hardwareData['uptimeH'] . ':' . $hardwareData['uptimeI'] . ':' . $hardwareData['uptimeS'];
             } else {
                 $hardwareData['uptime'] = 'n/a';
                 $hardwareData['uptimeD'] = '-';
                 $hardwareData['uptimeH'] = '-';
                 $hardwareData['uptimeI'] = '-';
+                $hardwareData['uptimeS'] = '-';
                 $hardwareData['uptimePretty'] = '-.-:-';
+                $hardwareData['uptimePrettyLong'] = '- d -:-:-';
             }
 
             preg_match_all("/load average:\s+([\d,.]+),\s+([\d,.]+),\s+([\d,.]+)/", $sshResponse, $loadAverageArray, PREG_SET_ORDER);
@@ -379,16 +417,32 @@ class Router
                 $hardwareData['loadAverage1i'] = $loadAverageArray[0][1];
                 $hardwareData['loadAverage5i'] = $loadAverageArray[0][2];
                 $hardwareData['loadAverage15i'] = $loadAverageArray[0][3];
-                $hardwareData['loadAverageNow'] = 100 * round((float)$hardwareData['loadAverage1i'] / (float)$hardwareData['cpuCores'],2);
+                $hardwareData['loadAverageNow'] = 100 * round((float)$hardwareData['loadAverage1i'] / (float)$hardwareData['cpuCores'], 2);
+                $hardwareData['loadAverage1iPerc'] = 100 * round((float)$hardwareData['loadAverage1i'] / (float)$hardwareData['cpuCores'], 2);
+                $hardwareData['loadAverage5iPerc'] = 100 * round((float)$hardwareData['loadAverage5i'] / (float)$hardwareData['cpuCores'], 2);
+                $hardwareData['loadAverage15iPerc'] = 100 * round((float)$hardwareData['loadAverage15i'] / (float)$hardwareData['cpuCores'], 2);
             } else {
                 $hardwareData['loadAverage'] = 'n/a';
                 $hardwareData['loadAverage1i'] = '-';
                 $hardwareData['loadAverage5i'] = '-';
                 $hardwareData['loadAverage15i'] = '-';
                 $hardwareData['loadAverageNow'] = '-';
+                $hardwareData['loadAverage1iPerc'] = '-';
+                $hardwareData['loadAverage5iPerc'] = '-';
+                $hardwareData['loadAverage15iPerc'] = '-';
+            }
+
+            if ($this->config['settings']['showDetailedDevicesData'] == 'Y') {
+                $hooksRawResult = $hardwareData['hooks']->execApiCommands(['get_wan_lan_status()', 'get_allclientlist()']);
+                $hooksCleanResults = array();
+                foreach ($hooksRawResult as $oneResultCommand => $oneResultData) {
+                    $hooksCleanResults[$oneResultCommand] = json_decode($oneResultData['response'], true);
+                }
+                $hardwareData['hooksResults'] = $hooksCleanResults;
             }
 
             $hardwareDataArray[$hardwareName] = $hardwareData;
+
         }
         $this->hardwareData = $hardwareDataArray;
     }

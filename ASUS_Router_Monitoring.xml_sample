@@ -18,6 +18,8 @@
         <refreshRate>5</refreshRate>
         <screenWidth>120</screenWidth>
         <screenHeight>36</screenHeight>
+        <showCurrentMinMaxAvg>N</showCurrentMinMaxAvg>
+        <showDetailedDevicesData>Y</showDetailedDevicesData>
     </settings>
     <providers>
         <provider>
