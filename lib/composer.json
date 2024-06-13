@@ -3,6 +3,7 @@
         "phpseclib/phpseclib": "~3.0",
       "ext-simplexml": "*",
       "ext-mbstring": "*",
-      "ext-libxml": "*"
+      "ext-libxml": "*",
+      "ext-curl": "*"
     }
 }
