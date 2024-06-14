@@ -391,7 +391,7 @@ class Screen
 
             echo str_repeat(' ', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1);
 
-            $statsLabelLine = 'Physical Devices Information';
+            $statsLabelLine = 'Devices information';
             $statsLabelStripeLength = (int)$this->config['settings']['screenWidth'] - strlen($statsLabelLine);
             $statsLabelStripeLength = (int)($statsLabelStripeLength / 2);
             $statsLabelStripe = str_repeat('-', $statsLabelStripeLength);
