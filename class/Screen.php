@@ -16,10 +16,13 @@ class Screen
     public const int TIME_STAMP_LENGTH_WITH_SPACE = 9;
     public const int SPEED_LENGTH_WITH_SPACE = 12;
     private array $config;
+    private array $logData;
+    private Logger $logger;
 
-    public function __construct(array $config)
+    public function __construct(array $config, Logger $logger)
     {
         $this->config = $config;
+        $this->logger = $logger;
     }
 
     public function detectScreenParameters(): void
@@ -46,7 +49,7 @@ class Screen
         }
     }
 
-    private function getColoredText(string $text, Color $color): string
+    public function getColoredText(string $text, Color $color): string
     {
         if (!stream_isatty(STDOUT)) {
             return $text;
@@ -407,6 +410,8 @@ class Screen
         $devicesDataAsText .= "\n";
         $devicesDataAsText .= str_repeat(' ', Screen::TIME_STAMP_LENGTH_WITH_SPACE + 1);
 
+
+
         for ($i = 1; $i <= 3; $i++) {
             $devicesDataAsText .= $this->getColoredText('WAN' . $i . ' ', Color::LIGHT_GRAY);
         }
@@ -427,6 +432,8 @@ class Screen
 
         $devicesDataAsText .= "\n";
 
+        $logData = [];
+
         // Print ports data
         foreach ($hardware as $hardwareData) {
             $devicesDataAsText .= $this->getColoredText(str_pad($hardwareData['deviceName'], Screen::TIME_STAMP_LENGTH_WITH_SPACE + 1), Color::WHITE);
@@ -436,6 +443,7 @@ class Screen
                 if (!str_contains($portName, 'LAN')) {
                     $devicesDataAsText .= $this->portStateToColoredLabel($portSpeed) . ' ';
                     $portsProcessed++;
+                    $logData[$hardwareData['deviceName'] . '_WAN_' . $portsProcessed] = $this->portStateToLabel($portSpeed);
                 }
             }
 
@@ -445,9 +453,12 @@ class Screen
 
             $devicesDataAsText .= '   ';
 
+            $portsProcessed = 0;
             foreach ($hardwareData['hooksResults']['get_wan_lan_status()']['get_wan_lan_status']['portSpeed'] as $portName => $portSpeed) {
                 if (str_contains($portName, 'LAN')) {
                     $devicesDataAsText .= $this->portStateToColoredLabel($portSpeed) . ' ';
+                    $portsProcessed++;
+                    $logData[$hardwareData['deviceName'] . '_LAN_' . $portsProcessed] = $this->portStateToLabel($portSpeed);
                 }
             }
 
@@ -458,6 +469,7 @@ class Screen
             $clientsList = reset($clientsList);
             $clientsCount = count($clientsList['wired_mac'] ?? []);
             $devicesDataAsText .= $this->getColoredText(str_pad($clientsCount, 8), Color::WHITE);
+            $logData[$hardwareData['deviceName'] . '_CLIENTS'] = $clientsCount;
 
             // Print temperature data
             if ($hardwareData['cpu_temp_max'] >= 60) {
@@ -466,30 +478,40 @@ class Screen
                 $devicesDataAsText .= $this->getColoredText(str_pad($hardwareData['cpu_temp'] . '°C', 13), Color::LIGHT_GREEN);
             }
 
+            $logData[$hardwareData['deviceName'] . '_CPU_TEMP_MIN'] = $hardwareData['cpu_temp_min'];
+            $logData[$hardwareData['deviceName'] . '_CPU_TEMP_MAX'] = $hardwareData['cpu_temp_max'];
+
+
             // Print load data
             if ($hardwareData['loadAverage1iPerc'] >= 60) {
                 $devicesDataAsText .= $this->getColoredText(str_pad($hardwareData['loadAverage1iPerc'] . '%', 6), Color::LIGHT_YELLOW);
             } else {
                 $devicesDataAsText .= $this->getColoredText(str_pad($hardwareData['loadAverage1iPerc'] . '%', 6), Color::LIGHT_GREEN);
             }
+            $logData[$hardwareData['deviceName'] . '_LOAD_1'] = $hardwareData['loadAverage1iPerc'];
 
             if ($hardwareData['loadAverage5iPerc'] >= 60) {
                 $devicesDataAsText .= $this->getColoredText(str_pad($hardwareData['loadAverage5iPerc'] . '%', 6), Color::LIGHT_YELLOW);
             } else {
                 $devicesDataAsText .= $this->getColoredText(str_pad($hardwareData['loadAverage5iPerc'] . '%', 6), Color::LIGHT_GREEN);
             }
+            $logData[$hardwareData['deviceName'] . '_LOAD_5'] = $hardwareData['loadAverage5iPerc'];
 
             if ($hardwareData['loadAverage15iPerc'] >= 60) {
                 $devicesDataAsText .= $this->getColoredText(str_pad($hardwareData['loadAverage15iPerc'] . '%', 7), Color::LIGHT_YELLOW);
             } else {
                 $devicesDataAsText .= $this->getColoredText(str_pad($hardwareData['loadAverage15iPerc'] . '%', 7), Color::LIGHT_GREEN);
             }
+            $logData[$hardwareData['deviceName'] . '_LOAD_15'] = $hardwareData['loadAverage15iPerc'];
 
             // Print uptime data
             $devicesDataAsText .= $this->getColoredText($hardwareData['uptimePrettyLong'], Color::WHITE);
+            $logData[$hardwareData['deviceName'] . '_UPTIME'] = $hardwareData['uptimePrettyLong'];
+            $logData[$hardwareData['deviceName'] . '_UPTIME_SECONDS'] = (int)$hardwareData['uptime'];
             $devicesDataAsText .= "\n";
         }
 
+        $this->logData = $logData;
         return $devicesDataAsText;
     }
 
@@ -521,6 +543,11 @@ class Screen
         if ($this->config['settings']['showDetailedDevicesData'] == 'Y') {
             echo $this->getDevicesData($hardware);
         }
+
+        // Logging data
+        if ($this->config['settings']['logData'] == 'Y') {
+            $this->logger->logData($providers, $this->logData);
+        }
     }
 
     private function portStateToColoredLabel(string $portState): string
@@ -533,6 +560,19 @@ class Screen
             'T' => $this->getColoredText('10.G', Color::LIGHT_CYAN),
             'X' => $this->getColoredText('----', Color::LIGHT_GRAY),
             default => $this->getColoredText('????', Color::LIGHT_YELLOW),
+        };
+    }
+
+    private function portStateToLabel(string $portState): string
+    {
+        return match ($portState) {
+            'M' => '100M',
+            'G' => '1.0G',
+            'Q' => '2.5G',
+            'F' => '5.0G',
+            'T' => '10.G',
+            'X' => '----',
+            default => '????',
         };
     }
 

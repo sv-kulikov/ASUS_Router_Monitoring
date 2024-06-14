@@ -38,6 +38,9 @@ class Config
         }
     }
 
+    /**
+     * @return bool True if the script is running with admin privileges, false otherwise.
+     */
     private static function isAdmin(): bool
     {
         $os = strtolower(PHP_OS);

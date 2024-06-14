@@ -26,8 +26,11 @@ if (isset($argv[1]) && $argv[1] == 'demo') {
     $config['settings']['demo'] = false;
 }
 
+// Preparing logger
+$logger = new Logger($config);
+
 // Preparing screen
-$screen = new Screen($config);
+$screen = new Screen($config, $logger);
 $screen->detectScreenParameters();
 $screen->clearScreen();
 
@@ -40,6 +43,9 @@ if ($config['isAdmin']) {
 } else {
     echo "Started in user mode. Network management is not available (no worries, it is not yet implemented :) ).\n";
 }
+
+// Check and adjust log settings
+$logger->checkSettings();
 
 echo "Screen width = " . $screen->getScreenWidth() . ", screen height = " . $screen->getScreenHeight() . ". Going to keep showing " . $screen->getStepsToShow() . " steps.\n";
 echo "Going to wait for " . $config['settings']['refreshRate'] . " seconds to collect data after establishing connection to device(s)...\n";

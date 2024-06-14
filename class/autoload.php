@@ -1,5 +1,10 @@
 <?php
 
+/**
+ * Registers class autoloader.
+ * @param $class string The fully-qualified class name.
+ * @return void
+ */
 spl_autoload_register(function ($class) {
 
     $prefix = 'Sv\\Network\\VmsRtbw\\';
