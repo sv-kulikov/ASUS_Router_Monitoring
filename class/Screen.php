@@ -427,8 +427,9 @@ class Screen
         $devicesDataAsText .= $this->getColoredText('LOAD1 ', Color::LIGHT_GRAY);
         $devicesDataAsText .= $this->getColoredText('LOAD5 ', Color::LIGHT_GRAY);
         $devicesDataAsText .= $this->getColoredText('LOAD15 ', Color::LIGHT_GRAY);
-        $devicesDataAsText .= $this->getColoredText('UPTIME ', Color::LIGHT_GRAY);
-        $devicesDataAsText .= str_repeat(' ', 16);
+        $devicesDataAsText .= $this->getColoredText('UPTIME      ', Color::LIGHT_GRAY);
+        $devicesDataAsText .= $this->getColoredText('TRAFFIC', Color::LIGHT_GRAY);
+        // $devicesDataAsText .= str_repeat(' ', 16);
 
         $devicesDataAsText .= "\n";
 
@@ -505,9 +506,15 @@ class Screen
             $logData[$hardwareData['deviceName'] . '_LOAD_15'] = $hardwareData['loadAverage15iPerc'];
 
             // Print uptime data
-            $devicesDataAsText .= $this->getColoredText($hardwareData['uptimePrettyLong'], Color::WHITE);
+            $devicesDataAsText .= $this->getColoredText(str_pad($hardwareData['uptimePrettyLong'], 12), Color::WHITE);
             $logData[$hardwareData['deviceName'] . '_UPTIME'] = $hardwareData['uptimePrettyLong'];
             $logData[$hardwareData['deviceName'] . '_UPTIME_SECONDS'] = (int)$hardwareData['uptime'];
+
+
+            // Print traffic
+            $devicesDataAsText .= $this->getColoredText($this->formatBytes($hardwareData['totalTraffic'], 2), Color::WHITE);
+            $logData[$hardwareData['deviceName'] . '_TRAFFIC'] = $hardwareData['totalTraffic'];
+
             $devicesDataAsText .= "\n";
         }
 

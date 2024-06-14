@@ -21,6 +21,8 @@ class Router
     private int $stepsToShow;
     private float $lastRefreshTime = 0;
     private float $currentRefreshTime = 0;
+    private int $totalRouterTraffic;
+    private int $totalRepeaterTraffic;
 
     public function init(Connection $connectionToRouter, Connection $connectionToRepeater, array $config, int $stepsToShow): void
     {
@@ -74,6 +76,8 @@ class Router
         $currentAdapter = '';
         $routerAdaptersList = array();
 
+        $routerTotalTraffic = 0;
+
         foreach ($sshResponseLines as $line) {
 
             preg_match_all("/^([\w-]+)\s/", $line, $adapterRegexArray);
@@ -97,11 +101,13 @@ class Router
                 preg_match_all("/RX bytes:(\d+) /", $lineTrimmed, $rxRegexArray);
                 if (isset($rxRegexArray[1][0])) {
                     $routerAdaptersList[$currentAdapter]['rx'] = $rxRegexArray[1][0];
+                    $routerTotalTraffic += (int)$rxRegexArray[1][0];
                 }
 
                 preg_match_all("/TX bytes:(\d+) /", $lineTrimmed, $txRegexArray);
                 if (isset($txRegexArray[1][0])) {
                     $routerAdaptersList[$currentAdapter]['tx'] = $txRegexArray[1][0];
+                    $routerTotalTraffic += (int)$txRegexArray[1][0];
                 }
 
                 preg_match_all("/RX packets:(\d+).*dropped:(\d+) /", $lineTrimmed, $rxPacketsRegexArray);
@@ -125,6 +131,32 @@ class Router
         }
 
         $this->adaptersData = $routerAdaptersList;
+        $this->totalRouterTraffic = $routerTotalTraffic;
+
+        $sshResponseRepeater = $this->sshClientRepeater->exec('ifconfig -a');
+        $sshResponseLinesRepeater = explode("\n", $sshResponseRepeater);
+
+        $repeaterTotalTraffic = 0;
+
+        foreach ($sshResponseLinesRepeater as $line) {
+
+            $lineTrimmed = trim(str_replace(array("\n", "\r"), '', $line));
+            if (strlen($lineTrimmed) > 0) {
+
+                preg_match_all("/RX bytes:(\d+) /", $lineTrimmed, $rxRegexArray);
+                if (isset($rxRegexArray[1][0])) {
+                    $repeaterTotalTraffic += (int)$rxRegexArray[1][0];
+                }
+
+                preg_match_all("/TX bytes:(\d+) /", $lineTrimmed, $txRegexArray);
+                if (isset($txRegexArray[1][0])) {
+                    $repeaterTotalTraffic += (int)$txRegexArray[1][0];
+                }
+
+            }
+        }
+
+        $this->totalRepeaterTraffic = $repeaterTotalTraffic;
     }
 
     public function initProvidersData(): void
@@ -350,11 +382,13 @@ class Router
         $hardwareDataArray['router']['hooks'] = $this->hooksRouter;
         $hardwareDataArray['router']['cpuCores'] = $this->config['router']['cpuCores'];
         $hardwareDataArray['router']['deviceName'] = $this->config['router']['deviceName'];
+        $hardwareDataArray['router']['totalTraffic'] = $this->totalRouterTraffic;
 
         $hardwareDataArray['repeater']['ssh'] = $this->sshClientRepeater;
         $hardwareDataArray['repeater']['hooks'] = $this->hooksRepeater;
         $hardwareDataArray['repeater']['cpuCores'] = $this->config['repeater']['cpuCores'];
         $hardwareDataArray['repeater']['deviceName'] = $this->config['repeater']['deviceName'];
+        $hardwareDataArray['repeater']['totalTraffic'] = $this->totalRepeaterTraffic;
 
         foreach ($hardwareDataArray as $hardwareName => $hardwareData) {
 
@@ -403,7 +437,7 @@ class Router
                 $hardwareData['uptimeI'] = str_pad($minutes, 2, '0', STR_PAD_LEFT);
                 $hardwareData['uptimeS'] = str_pad($seconds, 2, '0', STR_PAD_LEFT);
                 $hardwareData['uptimePretty'] = $hardwareData['uptimeD'] . '.' . $hardwareData['uptimeH'] . ':' . $hardwareData['uptimeI'];
-                $hardwareData['uptimePrettyLong'] = $hardwareData['uptimeD'] . ' d ' . $hardwareData['uptimeH'] . ':' . $hardwareData['uptimeI'] . ':' . $hardwareData['uptimeS'];
+                $hardwareData['uptimePrettyLong'] = $hardwareData['uptimeD'] . '.' . $hardwareData['uptimeH'] . ':' . $hardwareData['uptimeI'] . ':' . $hardwareData['uptimeS'];
             } else {
                 $hardwareData['uptime'] = 'n/a';
                 $hardwareData['uptimeD'] = '-';
