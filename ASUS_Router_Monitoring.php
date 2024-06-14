@@ -15,7 +15,7 @@ if (is_readable(__DIR__ . '/../' . 'ASUS_Router_Monitoring.xml')) {
 }
 
 if ($config['providers']['provider'][0]['providerName'] == 'Provider1') {
-    echo "Change the path in line 14th to your own config path.\n";
+    echo "Change the path in line 14th to your own config path. Or at least edit data in 'ASUS_Router_Monitoring.xml_sample' :).\n";
     exit(-1);
 }
 
