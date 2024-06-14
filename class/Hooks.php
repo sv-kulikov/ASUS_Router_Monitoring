@@ -5,6 +5,9 @@
 
 namespace Sv\Network\VmsRtbw;
 
+/**
+ * Class Hooks provides methods to execute API commands on an Asus router.
+ */
 class Hooks
 {
     private string $deviceAddr;

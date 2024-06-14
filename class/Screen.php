@@ -4,6 +4,9 @@ namespace Sv\Network\VmsRtbw;
 
 use DateTime;
 
+/**
+ * Class Screen provides methods to draw the main screen of the application.
+ */
 class Screen
 {
     private int $screenWidth;

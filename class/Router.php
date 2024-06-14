@@ -5,6 +5,9 @@ namespace Sv\Network\VmsRtbw;
 use Exception;
 use phpseclib3\Net\SSH2;
 
+/**
+ * Class Router provides methods to manage the router and repeater.
+ */
 class Router
 {
     private SSH2 $sshClientRouter;
