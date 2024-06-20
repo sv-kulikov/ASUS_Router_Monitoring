@@ -428,7 +428,7 @@ class Screen
         $devicesDataAsText .= $this->getColoredText('LOAD5 ', Color::LIGHT_GRAY);
         $devicesDataAsText .= $this->getColoredText('LOAD15 ', Color::LIGHT_GRAY);
         $devicesDataAsText .= $this->getColoredText('UPTIME      ', Color::LIGHT_GRAY);
-        $devicesDataAsText .= $this->getColoredText('TRAFFIC', Color::LIGHT_GRAY);
+        $devicesDataAsText .= $this->getColoredText('TRAFFIC  ', Color::LIGHT_GRAY);
         // $devicesDataAsText .= str_repeat(' ', 16);
 
         $devicesDataAsText .= "\n";
