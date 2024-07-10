@@ -10,9 +10,9 @@ class Logger
     private array $config;
     private string $logFullPath;
 
-    public function __construct(array $config)
+    public function __construct(Config $config)
     {
-        $this->config = $config;
+        $this->config = $config->getConfigData();
     }
 
     public function checkSettings(): void

@@ -16,12 +16,14 @@ class Screen
     public const int TIME_STAMP_LENGTH_WITH_SPACE = 9;
     public const int SPEED_LENGTH_WITH_SPACE = 12;
     private array $config;
+    private Config $configObject;
     private array $logData;
     private Logger $logger;
 
-    public function __construct(array $config, Logger $logger)
+    public function __construct(Config $config, Logger $logger)
     {
-        $this->config = $config;
+        $this->configObject = $config;
+        $this->config = $config->getConfigData();
         $this->logger = $logger;
     }
 
@@ -44,7 +46,7 @@ class Screen
                 $this->screenHeight = 36;
             }
 
-            $this->stepsToShow = floor(($this->screenHeight - 20) / 2);
+            $this->stepsToShow = floor(($this->screenHeight - 22) / 2);
             $this->oneProviderWidth = floor($this->screenWidth / ($providersCount + 1));
         }
     }
@@ -127,7 +129,10 @@ class Screen
 
         if (($trafficValue != $totalTrafficValue) && ($totalTrafficValue > 0)) {
             $perc = round(($trafficValue / $totalTrafficValue) * 100, 2);
-            $labelToShow .= str_pad('(' . $perc . ' %)', 10) . ' (idle ' . $idleCount . ')';
+            $labelToShow .= str_pad('(' . $perc . ' %)', 10);
+            if ($idleCount != -1) {
+                $labelToShow .= ' (idle ' . $idleCount . ')';
+            }
         } else {
             $labelToShow .= '(' . $trafficPerDay . ' / day)';
         }
@@ -306,13 +311,13 @@ class Screen
             '  ' . $this->getColoredText($statsLabelStripe, Color::GREEN);
     }
 
-    private function getCumulativeMinMaxAvgRxTxSpeeds(array $providers) : string
+    private function getCumulativeMinMaxAvgRxTxSpeeds(array $providers): string
     {
         $currentDateTime = new DateTime();
         $diff = $this->config['globalStartDateTime']->diff($currentDateTime);
 
         $speedsDataAsText = str_repeat(' ', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1);
-        $speedsDataAsText .= $this->getStatsLabelLine('Cumulative statistics for the last ' . $diff->format('%D d %H:%I:%S'));
+        $speedsDataAsText .= $this->getStatsLabelLine('Cumulative statistics for the last ' . $diff->format('%D d %H:%I:%S') . " (since the utility start)");
         $speedsDataAsText .= "\n";
 
         $speedsDataAsText .= $this->getColoredText(str_pad('MIN', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1), Color::RED);
@@ -376,40 +381,60 @@ class Screen
         return $speedsDataAsText;
     }
 
-    private function getCumulativeTraffic(array $providers) : string {
+    private function getCumulativeTraffic(array $providers, array $hardware): string
+    {
         $currentDateTime = new DateTime();
-        $diff = $this->config['globalStartDateTime']->diff($currentDateTime);
+        $diffUtility = $this->configObject->getParameter('globalStartDateTime')->diff($currentDateTime);
+        $diffRouter = $hardware['router']['routerStartDateTime']->diff($currentDateTime);
 
-        $trafficDataAsText =  $this->getStatsLabelLine('Cumulative traffic for the last ' . $diff->format('%D d %H:%I:%S'));
+        $trafficDataAsText = $this->getStatsLabelLine('Cumulative traffic for the last ' . $diffUtility->format('%D d %H:%I:%S') . " (since the utility start) and " . $diffRouter->format('%D d %H:%I:%S') . " (since the router start)");
 
-        $daysSinceStart = max(1, (int)$diff->format('%D')); // max() is to make sure it is never == 0
+        $daysSinceUtilityStart = max(1, (int)$diffUtility->format('%D')); // max() is to make sure it is never == 0
+        $daysSinceRouterStart = max(1, (int)$diffRouter->format('%D')); // max() is to make sure it is never == 0
 
+
+        // Utility
         $trafficDataAsText .= "\n";
 
-        $trafficDataAsText .= $this->getColoredText(str_pad('Recv.', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1), Color::LIGHT_MAGENTA);
+        $trafficDataAsText .= $this->getColoredText(str_pad('U.Recv.', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1), Color::LIGHT_MAGENTA);
         foreach ($providers as $providerData) {
-            $trafficDataAsText .= $this->getLineWithTotalTraffic(' R', $providerData['RXbytesAccumulated'], $providers['TOTAL']['RXbytesAccumulated'], $providerData['idleRXcount'], $daysSinceStart, Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::LIGHT_MAGENTA);
+            $trafficDataAsText .= $this->getLineWithTotalTraffic(' R', $providerData['RXbytesAccumulated'], $providers['TOTAL']['RXbytesAccumulated'], $providerData['idleRXcount'], $daysSinceUtilityStart, Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::LIGHT_MAGENTA);
         }
 
         $trafficDataAsText .= "\n";
 
-        $trafficDataAsText .= $this->getColoredText(str_pad('Trsm.', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1), Color::LIGHT_CYAN);
+        $trafficDataAsText .= $this->getColoredText(str_pad('U.Trsm.', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1), Color::LIGHT_CYAN);
         foreach ($providers as $providerData) {
-            $trafficDataAsText .= $this->getLineWithTotalTraffic(' T', $providerData['TXbytesAccumulated'], $providers['TOTAL']['TXbytesAccumulated'], $providerData['idleTXcount'], $daysSinceStart, Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::LIGHT_CYAN);
+            $trafficDataAsText .= $this->getLineWithTotalTraffic(' T', $providerData['TXbytesAccumulated'], $providers['TOTAL']['TXbytesAccumulated'], $providerData['idleTXcount'], $daysSinceUtilityStart, Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::LIGHT_CYAN);
+        }
+
+        // Router
+        $trafficDataAsText .= "\n";
+
+        $trafficDataAsText .= $this->getColoredText(str_pad('R.Recv.', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1), Color::MAGENTA);
+        foreach ($providers as $providerData) {
+            $trafficDataAsText .= $this->getLineWithTotalTraffic(' R', $providerData['RXbytes'], $providers['TOTAL']['RXbytes'], -1, $daysSinceRouterStart, Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::MAGENTA);
+        }
+
+        $trafficDataAsText .= "\n";
+
+        $trafficDataAsText .= $this->getColoredText(str_pad('R.Trsm.', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1), Color::CYAN);
+        foreach ($providers as $providerData) {
+            $trafficDataAsText .= $this->getLineWithTotalTraffic(' T', $providerData['TXbytes'], $providers['TOTAL']['TXbytes'], -1, $daysSinceRouterStart, Screen::SPEED_LENGTH_WITH_SPACE, 1, Color::CYAN);
         }
 
         return $trafficDataAsText;
     }
 
-    private function getDevicesData(array $hardware) : string {
+    private function getDevicesData(array $hardware): string
+    {
         $devicesDataAsText = "\n";
         $devicesDataAsText .= str_repeat(' ', $this->screenWidth + Screen::TIME_STAMP_LENGTH_WITH_SPACE + 1);
         $devicesDataAsText .= "\n";
         $devicesDataAsText .= str_repeat(' ', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1);
-        $devicesDataAsText .=  $this->getStatsLabelLine('Devices information');
+        $devicesDataAsText .= $this->getStatsLabelLine('Devices information');
         $devicesDataAsText .= "\n";
         $devicesDataAsText .= str_repeat(' ', Screen::TIME_STAMP_LENGTH_WITH_SPACE + 1);
-
 
 
         for ($i = 1; $i <= 3; $i++) {
@@ -429,7 +454,6 @@ class Screen
         $devicesDataAsText .= $this->getColoredText('LOAD15 ', Color::LIGHT_GRAY);
         $devicesDataAsText .= $this->getColoredText('UPTIME      ', Color::LIGHT_GRAY);
         $devicesDataAsText .= $this->getColoredText('TRAFFIC  ', Color::LIGHT_GRAY);
-        // $devicesDataAsText .= str_repeat(' ', 16);
 
         $devicesDataAsText .= "\n";
 
@@ -510,9 +534,8 @@ class Screen
             $logData[$hardwareData['deviceName'] . '_UPTIME'] = $hardwareData['uptimePrettyLong'];
             $logData[$hardwareData['deviceName'] . '_UPTIME_SECONDS'] = (int)$hardwareData['uptime'];
 
-
             // Print traffic
-            $devicesDataAsText .= $this->getColoredText($this->formatBytes($hardwareData['totalTraffic'], 2), Color::WHITE);
+            $devicesDataAsText .= $this->getColoredText(str_pad($this->formatBytes($hardwareData['totalTraffic'], 2), 8), Color::WHITE);
             $logData[$hardwareData['deviceName'] . '_TRAFFIC'] = $hardwareData['totalTraffic'];
 
             $devicesDataAsText .= "\n";
@@ -544,7 +567,7 @@ class Screen
         echo $this->getCumulativeMinMaxAvgRxTxSpeeds($providers);
 
         // Printing overall traffic
-        echo $this->getCumulativeTraffic($providers);
+        echo $this->getCumulativeTraffic($providers, $hardware);
 
         // Printing devices data
         if ($this->config['settings']['showDetailedDevicesData'] == 'Y') {

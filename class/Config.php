@@ -11,11 +11,13 @@ use SimpleXMLElement;
  */
 class Config
 {
+    private array $configData;
+
     /**
      * @param string $xmlConfigFileName Path to the XML configuration file.
      * @return array Configuration data.
      */
-    public static function getConfigData(string $xmlConfigFileName): array
+    public function readConfigData(string $xmlConfigFileName): void
     {
         try {
             if (!file_exists($xmlConfigFileName)) {
@@ -31,10 +33,10 @@ class Config
             $array['globalStartDateTime'] = new DateTime();
             $array['isAdmin'] = self::isAdmin();
 
-            return $array;
+            $this->configData = $array;
         } catch (Exception $e) {
             echo "Error: " . $e->getMessage();
-            return [];
+            $this->configData = [];
         }
     }
 
@@ -58,6 +60,31 @@ class Config
         }
 
         return false;
+    }
+
+    public function getConfigData(): array
+    {
+        return $this->configData;
+    }
+
+    public function updateParameter(string $parameter, string $value): void
+    {
+        $this->configData[$parameter] = $value;
+    }
+
+    public function updateNestedParameter(string $parameterNameLevel1, string $parameterNameLevel2, string $value): void
+    {
+        $this->configData[$parameterNameLevel1][$parameterNameLevel2] = $value;
+    }
+
+    public function getParameter(string $parameter): string|int|bool|DateTime
+    {
+        return $this->configData[$parameter];
+    }
+
+    public function getNestedParameter(string $parameterNameLevel1, string $parameterNameLevel2): string|int|bool
+    {
+        return $this->configData[$parameterNameLevel1][$parameterNameLevel2];
     }
 
 }

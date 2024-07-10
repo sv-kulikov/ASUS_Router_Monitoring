@@ -2,6 +2,7 @@
 
 namespace Sv\Network\VmsRtbw;
 
+use DateTime;
 use Exception;
 use phpseclib3\Net\SSH2;
 
@@ -18,47 +19,57 @@ class Router
     private array $providersData = array();
     private array $hardwareData = array();
     private array $config;
+    private Config $configObject;
     private int $stepsToShow;
     private float $lastRefreshTime = 0;
     private float $currentRefreshTime = 0;
     private int $totalRouterTraffic;
     private int $totalRepeaterTraffic;
+    private DateTime $routerStartDateTime;
 
-    public function init(Connection $connectionToRouter, Connection $connectionToRepeater, array $config, int $stepsToShow): void
+    public function init(Connection $connectionToRouter, Connection $connectionToRepeater, Config $config, int $stepsToShow): void
     {
-        $this->config = $config;
+        $this->configObject = $config;
+        $this->config = $config->getConfigData();
         $this->stepsToShow = $stepsToShow;
 
         $attemptsLeft = 20;
         while ($attemptsLeft > 0) {
             try {
-                $this->sshClientRouter = $connectionToRouter->getConnection($config['router']['ip'], $config['router']['login'], $config['router']['password'], $config['router']['port']);
-                if ($config['settings']['demo']) {
+                $this->sshClientRouter = $connectionToRouter->getConnection($this->config['router']['ip'], $this->config['router']['login'], $this->config['router']['password'], $this->config['router']['port']);
+                if ($this->config['settings']['demo']) {
                     $this->config['router']['deviceName'] = 'Router';
                 } else {
                     $this->config['router']['deviceName'] = str_replace(["\n", "\r"], "", $this->sshClientRouter->exec('nvram get wps_device_name'));
                 }
                 echo "Connected to router: " . $this->config['router']['deviceName'] . "\n";
                 if ($this->config['settings']['showDetailedDevicesData'] == 'Y') {
-                    $this->hooksRouter = new Hooks($config['router']['ip'], $config['router']['login'], $config['router']['password']);
+                    $this->hooksRouter = new Hooks($this->config['router']['ip'], $this->config['router']['login'], $this->config['router']['password']);
                 }
 
-                if ($config['repeater']['ip'] != '') {
-                    $this->sshClientRepeater = $connectionToRepeater->getConnection($config['repeater']['ip'], $config['repeater']['login'], $config['repeater']['password'], $config['repeater']['port']);
-                    if ($config['settings']['demo']) {
+                // We need router uptime here to calculate "statistics for the last..."
+                // Yes, it is not really the same as the "ISP uptime", but it is close enough.
+                $sshResponseRouterStartDateTime = $this->sshClientRouter->exec('cat /proc/uptime');
+                $this->routerStartDateTime = new DateTime();
+                $this->routerStartDateTime->setTimestamp((int)microtime(true) - (int)explode(' ', $sshResponseRouterStartDateTime)[0]);
+
+                if ($this->config['repeater']['ip'] != '') {
+                    $this->sshClientRepeater = $connectionToRepeater->getConnection($this->config['repeater']['ip'], $this->config['repeater']['login'], $this->config['repeater']['password'], $this->config['repeater']['port']);
+                    if ($this->config['settings']['demo']) {
                         $this->config['repeater']['deviceName'] = 'Repeater';
                     } else {
                         $this->config['repeater']['deviceName'] = str_replace(["\n", "\r"], "", $this->sshClientRepeater->exec('nvram get wps_device_name'));
                     }
                     echo "Connected to repeater: " . $this->config['repeater']['deviceName'] . "\n";
                     if ($this->config['settings']['showDetailedDevicesData'] == 'Y') {
-                        $this->hooksRepeater = new Hooks($config['repeater']['ip'], $config['repeater']['login'], $config['repeater']['password']);
+                        $this->hooksRepeater = new Hooks($this->config['repeater']['ip'], $this->config['repeater']['login'], $this->config['repeater']['password']);
                     }
                 }
                 break;
             } catch (Exception) {
                 echo "Something is wrong with the connection to either router or repeater. Waiting for 5 seconds to try again. Attempts left = " . ($attemptsLeft--) . ".\n";
                 sleep(5);
+                $this->configObject->updateParameter('globalStartDateTime', new DateTime());
             }
         }
         $this->lastRefreshTime = microtime(true);
@@ -383,6 +394,7 @@ class Router
         $hardwareDataArray['router']['cpuCores'] = $this->config['router']['cpuCores'];
         $hardwareDataArray['router']['deviceName'] = $this->config['router']['deviceName'];
         $hardwareDataArray['router']['totalTraffic'] = $this->totalRouterTraffic;
+        $hardwareDataArray['router']['routerStartDateTime'] = $this->routerStartDateTime;
 
         $hardwareDataArray['repeater']['ssh'] = $this->sshClientRepeater;
         $hardwareDataArray['repeater']['hooks'] = $this->hooksRepeater;
