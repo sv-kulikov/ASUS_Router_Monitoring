@@ -15,7 +15,6 @@ class Config
 
     /**
      * @param string $xmlConfigFileName Path to the XML configuration file.
-     * @return array Configuration data.
      */
     public function readConfigData(string $xmlConfigFileName): void
     {
@@ -67,7 +66,7 @@ class Config
         return $this->configData;
     }
 
-    public function updateParameter(string $parameter, string $value): void
+    public function updateParameter(string $parameter, string|int|float|DateTime $value): void
     {
         $this->configData[$parameter] = $value;
     }
