@@ -42,6 +42,9 @@ class Logger
         foreach ($providers as $providerData) {
             $data[$providerData['providerName'] . '_currentRX'] = (int)end($providerData['speedRX']);
             $data[$providerData['providerName'] . '_currentTX'] = (int)end($providerData['speedTX']);
+
+            $data[$providerData['providerName'] . '_totalRX'] = (int)$providerData['RXbytes'];
+            $data[$providerData['providerName'] . '_totalTX'] = (int)$providerData['TXbytes'];
         }
 
         $readyData = array_merge($data, $hardwareStats);
