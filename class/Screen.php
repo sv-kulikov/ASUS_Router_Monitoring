@@ -315,9 +315,10 @@ class Screen
     {
         $currentDateTime = new DateTime();
         $diff = $this->config['globalStartDateTime']->diff($currentDateTime);
+        $diffUtility = $this->configObject->getParameter('globalStartDateTime')->diff($currentDateTime);
 
         $speedsDataAsText = str_repeat(' ', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1);
-        $speedsDataAsText .= $this->getStatsLabelLine('Cumulative statistics for the last ' . $diff->format('%D d %H:%I:%S') . " (since the utility start)");
+        $speedsDataAsText .= $this->getStatsLabelLine('Cumulative statistics for the last ' . $diffUtility->format('%D d %H:%I:%S') . " (since the utility start)");
         $speedsDataAsText .= "\n";
 
         $speedsDataAsText .= $this->getColoredText(str_pad('MIN', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1), Color::RED);
@@ -535,7 +536,7 @@ class Screen
             $logData[$hardwareData['deviceName'] . '_UPTIME_SECONDS'] = (int)$hardwareData['uptime'];
 
             // Print traffic
-            $devicesDataAsText .= $this->getColoredText(str_pad($this->formatBytes($hardwareData['totalTraffic'], 2), 8), Color::WHITE);
+            $devicesDataAsText .= $this->getColoredText(str_pad($this->formatBytes($hardwareData['totalTraffic'], 2), 10), Color::WHITE);
             $logData[$hardwareData['deviceName'] . '_TRAFFIC'] = $hardwareData['totalTraffic'];
 
             $devicesDataAsText .= "\n";
