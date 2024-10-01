@@ -318,7 +318,7 @@ class Screen
         $diffUtility = $this->configObject->getParameter('globalStartDateTime')->diff($currentDateTime);
 
         $speedsDataAsText = str_repeat(' ', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1);
-        $speedsDataAsText .= $this->getStatsLabelLine('Cumulative statistics for the last ' . $diffUtility->format('%D d %H:%I:%S') . " (since the utility start)");
+        $speedsDataAsText .= $this->getStatsLabelLine('Cumulative statistics for the last ' . $diffUtility->format('%a d %H:%I:%S') . " (since the utility start)");
         $speedsDataAsText .= "\n";
 
         $speedsDataAsText .= $this->getColoredText(str_pad('MIN', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1), Color::RED);
@@ -388,10 +388,10 @@ class Screen
         $diffUtility = $this->configObject->getParameter('globalStartDateTime')->diff($currentDateTime);
         $diffRouter = $hardware['router']['routerStartDateTime']->diff($currentDateTime);
 
-        $trafficDataAsText = $this->getStatsLabelLine('Cumulative traffic for the last ' . $diffUtility->format('%D d %H:%I:%S') . " (since the utility start) and " . $diffRouter->format('%D d %H:%I:%S') . " (since the router start)");
+        $trafficDataAsText = $this->getStatsLabelLine('Cumulative traffic for the last ' . $diffUtility->format('%a d %H:%I:%S') . " (since the utility start) and " . $diffRouter->format('%a d %H:%I:%S') . " (since the router start)");
 
-        $daysSinceUtilityStart = max(1, (int)$diffUtility->format('%D')); // max() is to make sure it is never == 0
-        $daysSinceRouterStart = max(1, (int)$diffRouter->format('%D')); // max() is to make sure it is never == 0
+        $daysSinceUtilityStart = max(1, (int)$diffUtility->format('%a')); // max() is to make sure it is never == 0
+        $daysSinceRouterStart = max(1, (int)$diffRouter->format('%a')); // max() is to make sure it is never == 0
 
 
         // Utility
