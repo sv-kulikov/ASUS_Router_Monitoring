@@ -20,6 +20,9 @@
         <screenHeight>36</screenHeight>
         <showCurrentMinMaxAvg>N</showCurrentMinMaxAvg>
         <showDetailedDevicesData>Y</showDetailedDevicesData>
+	<checkForKeyboardEvents>Y</checkForKeyboardEvents>
+        <logData>Y</logData>
+        <logPath>../_ASUS_Logs</logPath>
     </settings>
     <providers>
         <provider>

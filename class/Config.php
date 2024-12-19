@@ -76,9 +76,9 @@ class Config
         $this->configData[$parameterNameLevel1][$parameterNameLevel2] = $value;
     }
 
-    public function getParameter(string $parameter): string|int|bool|DateTime
+    public function getParameter(string $parameter): string|int|bool|null|DateTime
     {
-        return $this->configData[$parameter];
+        return $this->configData[$parameter] ?? null;
     }
 
     public function getNestedParameter(string $parameterNameLevel1, string $parameterNameLevel2): string|int|bool

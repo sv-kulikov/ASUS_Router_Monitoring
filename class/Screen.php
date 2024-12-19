@@ -91,7 +91,10 @@ class Screen
 
     public function clearScreen(): void
     {
-        echo chr(27) . chr(91) . 'H' . chr(27) . chr(91) . 'J';
+        echo "\033[H\033[J";
+        // \033 (or \e in some environments) represents the escape character (ESC).
+        // [H moves the cursor to the "home" position (top-left of the terminal).
+        // [J clears the screen from the cursor position to the end of the display.
     }
 
     private function getBar($directionLetter, $speedValue, $globalMaxSpeed, $oneProviderWidth, $speedLengthWithSpace, $paddingSpaces, $color, $barColor = Color::DARK_GRAY): string

@@ -36,6 +36,9 @@ $screen = new Screen($config, $logger);
 $screen->detectScreenParameters();
 $screen->clearScreen();
 
+// Preparing worker
+$worker = new Worker();
+
 if ($config->getNestedParameter('settings', 'demo')) {
     echo "Demo mode activated. Provider's names and IPs are hidden.\n";
 }
@@ -46,33 +49,90 @@ if ($config->getParameter('isAdmin')) {
     echo "Started in user mode. Network management is not available (no worries, it is not yet implemented :) ).\n";
 }
 
+if ($config->getNestedParameter('settings', 'checkForKeyboardEvents') !== 'Y') {
+    echo "Keyboard events are disabled. Good.\n";
+} else {
+    echo "Keyboard events are enabled. The Hell will loose now.\n";
+}
+
 // Check and adjust log settings
 $logger->checkSettings();
 
 echo "Screen width = " . $screen->getScreenWidth() . ", screen height = " . $screen->getScreenHeight() . ". Going to keep showing " . $screen->getStepsToShow() . " steps.\n";
 echo "Going to wait for " . $config->getNestedParameter('settings', 'refreshRate') . " seconds to collect data after establishing connection to device(s)...\n";
-// Global loop
-while (true) {
-    $connectionToRouter = new Connection();
-    $connectionToRepeater = new Connection();
-    $router = new Router();
-    $router->init($connectionToRouter, $connectionToRepeater, $config, $screen->getStepsToShow());
-    $router->refreshAdaptersData();
-    $router->initProvidersData();
-    sleep($config->getNestedParameter('settings', 'refreshRate'));
-    try {
-        // Refreshing data loop
-        while (true) {
-            $router->refreshAdaptersData();
-            $router->refreshProvidersData();
-            $router->refreshHardwareData();
-            $router->refreshStats();
-            $screen->drawScreen($router->getProvidersData(), $router->getHardwareData());
-            sleep($config->getNestedParameter('settings', 'refreshRate'));
+
+// We have to differentiate between "utility start" and ISP "failed & recovered" (or LAN adapter reset) situations
+$utility_start = true;
+
+// Global loop. With keyboard events processing considerations.
+if ($config->getNestedParameter('settings', 'checkForKeyboardEvents') !== 'Y') {
+    // Normal workflow without keyboard events processing
+
+    while (true) {
+        try {
+            $worker->globalInit($router, $config, $screen, $utility_start);
+            while (true) {
+                $worker->globalStep($router, $config, $screen, $utility_start);
+            }
+        } catch (Exception) {
+            $worker->refreshAfterException($screen, $config);
         }
-    } catch (Exception) {
-        $screen->clearScreen();
-        echo "Router seems to be offline. Waiting for " . $config->getNestedParameter('settings', 'refreshRate') . " seconds to try again...\n";
-        sleep($config->getNestedParameter('settings', 'refreshRate'));
     }
+
+} else {
+    // Experimental feature: keyboard events processing
+    ob_implicit_flush(true);
+
+    // Platform-specific setup for key detection
+    if (PHP_OS_FAMILY !== 'Windows') {
+        // Linux/macOS: Set terminal to raw mode for non-blocking key press detection
+        system('stty -icanon -echo');
+        $stdin = fopen("php://stdin", "r");
+        stream_set_blocking($stdin, false);
+    }
+
+
+    while (true) {
+        try {
+            $worker->globalInit($router, $config, $screen, $utility_start);
+
+            while (true) {
+
+                if (PHP_OS_FAMILY === 'Windows') {
+                    // Windows: Use 'choice' command to check for key press in a non-blocking way
+                    $key = shell_exec('choice /c abcdefghijklmnopqrstuvwxyz /n /t 1 /d Z /m ""');
+                } else {
+                    // Linux/macOS: Read a single character from STDIN in non-blocking mode
+                    system('stty -icanon -echo');
+                    $stdin = fopen("php://stdin", "r");
+                    stream_set_blocking($stdin, false);
+                    $key = fread($stdin, 1);
+                }
+
+                if ((str_contains(($key ?? ''), 'Q')) || (str_contains(($key ?? ''), 'q'))) {
+                    $screen->clearScreen();
+                    echo "Quitting...\n";
+                    exit(0);
+                }
+
+                if ((str_contains(($key ?? ''), 'I')) || (str_contains(($key ?? ''), 'i'))) {
+                    $screen->clearScreen();
+                    echo "Initializing...\n";
+                    sleep(1);
+                    $utility_start = true;
+                    $worker->globalInit($router, $config, $screen, $utility_start);
+                }
+
+                if (PHP_OS_FAMILY !== 'Windows') {
+                    system('stty sane');
+                    fclose($stdin);
+                }
+
+                $worker->globalStep($router, $config, $screen, $utility_start);
+            }
+        } catch (Exception) {
+            $worker->refreshAfterException($screen, $config);
+        }
+    }
+
 }
