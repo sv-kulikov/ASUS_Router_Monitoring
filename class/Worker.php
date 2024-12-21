@@ -17,13 +17,13 @@ class Worker
      * If $utility_start is true, providers' data is also initialized.
      *
      * @param Router|null $router         The router object to initialize (passed by reference).
-     * @param Config|null $config         Configuration object containing application settings (passed by reference).
-     * @param Screen|null $screen         The screen object for UI-related actions (passed by reference).
+     * @param Config $config         Configuration object containing application settings (passed by reference).
+     * @param Screen $screen         The screen object for UI-related actions (passed by reference).
      * @param bool $utility_start         Indicates whether to initialize providers' data.
      *
      * @return void
      */
-    public function globalInit(?Router &$router, ?Config &$config, ?Screen &$screen, bool &$utility_start): void
+    public function globalInit(?Router &$router, Config $config, Screen $screen, bool &$utility_start): void
     {
         // Create new connections to router and repeater
         $connectionToRouter = new Connection();
@@ -49,14 +49,13 @@ class Worker
      *
      * Executes periodic tasks such as refreshing data and updating the screen.
      *
-     * @param Router|null $router         The router object to update (passed by reference).
-     * @param Config|null $config         Configuration object containing application settings (passed by reference).
-     * @param Screen|null $screen         The screen object for UI-related actions (passed by reference).
-     * @param bool $utility_start         Indicates whether to initialize providers' data (unused in this method).
+     * @param Router $router         The router object to update (passed by reference).
+     * @param Config $config         Configuration object containing application settings (passed by reference).
+     * @param Screen $screen         The screen object for UI-related actions (passed by reference).
      *
      * @return void
      */
-    public function globalStep(?Router &$router, ?Config &$config, ?Screen &$screen, bool &$utility_start): void
+    public function globalStep(Router $router, Config $config, Screen $screen): void
     {
         // Refresh various data sources in the router
         $router->refreshAdaptersData();

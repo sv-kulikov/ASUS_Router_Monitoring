@@ -519,8 +519,8 @@ class Router
 
                 $hardwareData['cpuCoresCount'] = count($cpuLoads);
                 $hardwareData['cpuLoadsPerc'] = $cpuLoads;
-                $hardwareData['cpuLoadMinPerc'] = (int)round($minLoad);
-                $hardwareData['cpuLoadMaxPerc'] = (int)round($maxLoad);
+                $hardwareData['cpuLoadMinPerc'] = number_format(round($minLoad, 1), '1', '.', '');
+                $hardwareData['cpuLoadMaxPerc'] = number_format(round($maxLoad, 1), '1', '.', '');
                 if ($hardwareData['cpuCoresCount'] == 1) {
                     $hardwareData['cpuLoadString'] = $hardwareData['cpuLoadMinPerc'];
                 } else {
@@ -532,7 +532,7 @@ class Router
             $hardwareData['memoryUsageRAW'] = $hardwareData['hooksResults']['memory_usage(appobj)']['memory_usage'] ?? '[]';
             $hardwareData['memoryTotal'] = (int)(($hardwareData['memoryUsageRAW']['mem_total'] ?? 0) / 1024);
             $hardwareData['memoryUsed'] = (int)(($hardwareData['memoryUsageRAW']['mem_used'] ?? 0) / 1024);
-            $hardwareData['memoryUsedPerc'] = (int)round($hardwareData['memoryUsed'] * 100 / max($hardwareData['memoryTotal'], 1));
+            $hardwareData['memoryUsedPerc'] = number_format(round($hardwareData['memoryUsed'] * 100 / max($hardwareData['memoryTotal'], 1), 1), 1, '.', '');
             $hardwareData['memoryUsageString'] = $hardwareData['memoryUsedPerc'] . '% ' . $hardwareData['memoryUsed'] . 'MB';
 
             $hardwareDataArray[$hardwareName] = $hardwareData;

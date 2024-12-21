@@ -452,10 +452,10 @@ class Screen
         $devicesDataAsText .= '   ';
         $devicesDataAsText .= $this->getColoredText('CLS ', Color::LIGHT_GRAY);
         $devicesDataAsText .= $this->getColoredText('CPUTEMP ', Color::LIGHT_GRAY);
-        $devicesDataAsText .= $this->getColoredText('CPULOAD    ', Color::LIGHT_GRAY);
-        $devicesDataAsText .= $this->getColoredText('MEMORY     ', Color::LIGHT_GRAY);
+        $devicesDataAsText .= $this->getColoredText('CPULOAD         ', Color::LIGHT_GRAY);
+        $devicesDataAsText .= $this->getColoredText('MEMORY      ', Color::LIGHT_GRAY);
         $devicesDataAsText .= $this->getColoredText('UPTIME      ', Color::LIGHT_GRAY);
-        $devicesDataAsText .= $this->getColoredText('TRAFFIC         ', Color::LIGHT_GRAY);
+        $devicesDataAsText .= $this->getColoredText('TRAFFIC   ', Color::LIGHT_GRAY);
 
         $devicesDataAsText = str_pad($devicesDataAsText, $this->screenWidth + Screen::TIME_STAMP_LENGTH_WITH_SPACE + 1, '*', STR_PAD_RIGHT);
 
@@ -515,11 +515,11 @@ class Screen
             $devicesDataAsText .= $this->getColoredText($hardwareData['cpuCoresCount'] . ': ', Color::LIGHT_GREEN);
 
             if ($hardwareData['cpuLoadMaxPerc'] >= 80) {
-                $devicesDataAsText .= $this->getColoredText(str_pad($hardwareData['cpuLoadString'] . '%', 8), Color::LIGHT_RED);
+                $devicesDataAsText .= $this->getColoredText(str_pad($hardwareData['cpuLoadString'] . '%', 13), Color::LIGHT_RED);
             } elseif ($hardwareData['cpuLoadMinPerc'] >= 60) {
-                $devicesDataAsText .= $this->getColoredText(str_pad($hardwareData['cpuLoadString'] . '%', 8), Color::LIGHT_YELLOW);
+                $devicesDataAsText .= $this->getColoredText(str_pad($hardwareData['cpuLoadString'] . '%', 13), Color::LIGHT_YELLOW);
             } else {
-                $devicesDataAsText .= $this->getColoredText(str_pad($hardwareData['cpuLoadString'] . '%', 8), Color::LIGHT_GREEN);
+                $devicesDataAsText .= $this->getColoredText(str_pad($hardwareData['cpuLoadString'] . '%', 13), Color::LIGHT_GREEN);
             }
 
             $logData[$hardwareData['deviceName'] . '_CPU_MIN_PERC'] = $hardwareData['cpuLoadMinPerc'];
@@ -527,11 +527,11 @@ class Screen
 
             // Print memory data
             if ($hardwareData['memoryUsedPerc'] >= 80) {
-                $devicesDataAsText .= $this->getColoredText(str_pad($hardwareData['memoryUsageString'], 11), Color::LIGHT_RED);
+                $devicesDataAsText .= $this->getColoredText(str_pad($hardwareData['memoryUsageString'], 12), Color::LIGHT_RED);
             } elseif ($hardwareData['memoryUsedPerc'] >= 60) {
-                $devicesDataAsText .= $this->getColoredText(str_pad($hardwareData['memoryUsageString'], 11), Color::LIGHT_YELLOW);
+                $devicesDataAsText .= $this->getColoredText(str_pad($hardwareData['memoryUsageString'], 12), Color::LIGHT_YELLOW);
             } else {
-                $devicesDataAsText .= $this->getColoredText(str_pad($hardwareData['memoryUsageString'], 11), Color::LIGHT_GREEN);
+                $devicesDataAsText .= $this->getColoredText(str_pad($hardwareData['memoryUsageString'], 12), Color::LIGHT_GREEN);
             }
 
             $logData[$hardwareData['deviceName'] . '_MEMORY_PERC'] = $hardwareData['memoryUsedPerc'];
@@ -544,7 +544,7 @@ class Screen
             $logData[$hardwareData['deviceName'] . '_UPTIME_SECONDS'] = (int)$hardwareData['uptime'];
 
             // Print traffic
-            $devicesDataAsText .= $this->getColoredText(str_pad($this->formatBytes($hardwareData['totalTraffic'], 2), 16), Color::WHITE);
+            $devicesDataAsText .= $this->getColoredText(str_pad($this->formatBytes($hardwareData['totalTraffic'], 2), 11), Color::WHITE);
             $logData[$hardwareData['deviceName'] . '_TRAFFIC'] = $hardwareData['totalTraffic'];
 
             $devicesDataAsText .= "\n";

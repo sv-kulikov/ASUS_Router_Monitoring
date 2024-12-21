@@ -83,7 +83,7 @@ if (!$keyboardEvents) {
         try {
             $worker->globalInit($router, $config, $screen, $utilityStart);
             while (true) {
-                $worker->globalStep($router, $config, $screen, $utilityStart);
+                $worker->globalStep($router, $config, $screen);
             }
         } catch (Exception $e) {
             $worker->refreshAfterException($screen, $config);
