@@ -2,143 +2,137 @@
 
 namespace Sv\Network\VmsRtbw;
 
-require __DIR__ . '/' . 'lib/vendor/autoload.php';
-require __DIR__ . '/' . 'class/autoload.php';
+require __DIR__ . '/lib/vendor/autoload.php';
+require __DIR__ . '/class/autoload.php';
 
 use Exception;
 
-// Getting all settings
+// Load configuration
 $config = new Config();
-$expectedCustomConfigPath = __DIR__ . '/../' . 'ASUS_Router_Monitoring.xml';
-if (is_readable($expectedCustomConfigPath)) {
-    $config->readConfigData($expectedCustomConfigPath);
+$customConfigPath = __DIR__ . '/../ASUS_Router_Monitoring.xml';
+$defaultConfigPath = __DIR__ . '/ASUS_Router_Monitoring.xml_sample';
+
+// Load custom or default configuration
+if (is_readable($customConfigPath)) {
+    $config->readConfigData($customConfigPath);
 } else {
-    $config->readConfigData(__DIR__ . '/ASUS_Router_Monitoring.xml_sample');
+    $config->readConfigData($defaultConfigPath);
 }
 
-if ($config->getConfigData()['providers']['provider'][0]['providerName'] == 'Provider1') {
-    echo "Change the path in the 12th line to your own config path. Or at least edit data in 'ASUS_Router_Monitoring.xml_sample' :).\n";
+// Check for default configuration and exit if unchanged
+if ($config->getConfigData()['providers']['provider'][0]['providerName'] === 'Provider1') {
+    echo "Please update the configuration file at line 12 to your specific settings or modify 'ASUS_Router_Monitoring.xml_sample'.\n";
     exit(-1);
 }
 
-// Hide IPs and providers' names in demo mode
-if (isset($argv[1]) && $argv[1] == 'demo') {
-    $config->updateNestedParameter('settings', 'demo', true);
-} else {
-    $config->updateNestedParameter('settings', 'demo', false);
-}
+// Set demo mode based on argument
+$demoMode = isset($argv[1]) && $argv[1] === 'demo';
+$config->updateNestedParameter('settings', 'demo', $demoMode);
 
-// Preparing logger
+// Initialize logger and screen
 $logger = new Logger($config);
-
-// Preparing screen
 $screen = new Screen($config, $logger);
 $screen->detectScreenParameters();
 $screen->clearScreen();
 
-// Preparing worker
+// Initialize worker
 $worker = new Worker();
 
-if ($config->getNestedParameter('settings', 'demo')) {
-    echo "Demo mode activated. Provider's names and IPs are hidden.\n";
+// Display demo mode status
+if ($demoMode) {
+    echo "Demo mode activated. Providers' names and IPs are hidden.\n";
 }
 
+// Display access mode
 if ($config->getParameter('isAdmin')) {
-    echo "Started in admin (root) mode. Network management is available (but not yet implemented :) ).\n";
+    echo "Admin (root) mode activated. Network management might be available (but not implemented yet).\n";
 } else {
-    echo "Started in user mode. Network management is not available (no worries, it is not yet implemented :) ).\n";
+    echo "User mode activated. Network management is not available (no worries, it is not yet implemented).\n";
 }
 
-if ($config->getNestedParameter('settings', 'checkForKeyboardEvents') !== 'Y') {
-    echo "Keyboard events are disabled. Good.\n";
+// Display keyboard event handling status
+$keyboardEvents = $config->getNestedParameter('settings', 'checkForKeyboardEvents') === 'Y';
+if ($keyboardEvents) {
+    echo "Keyboard events are enabled. All the Hell will break loose now :).\n";
 } else {
-    echo "Keyboard events are enabled. The Hell will break loose now.\n";
+    echo "Keyboard events are disabled. Good choice.\n";
 }
 
-if ($this->config['settings']['showDetailedDevicesData'] !== 'Y') {
-    echo "Detailed devices data is disabled. It is recommended to enable (unless you have compatibility issues).\n";
+// Display detailed devices data status
+$detailedDevicesData = $config->getNestedParameter('settings', 'showDetailedDevicesData') === 'Y';
+if ($detailedDevicesData) {
+    echo "Detailed devices data is enabled. Good choice.\n";
 } else {
-    echo "Detailed devices data is enabled. Good.\n";
+    echo "Detailed devices data is disabled. Consider enabling it unless compatibility issues arise.\n";
 }
 
-// Check and adjust log settings
+// Check and adjust logger settings
 $logger->checkSettings();
 
-echo "Screen width = " . $screen->getScreenWidth() . ", screen height = " . $screen->getScreenHeight() . ". Going to keep showing " . $screen->getStepsToShow() . " steps.\n";
-echo "Going to wait for " . $config->getNestedParameter('settings', 'refreshRate') . " seconds to collect data after establishing connection to device(s)...\n";
+// Display screen parameters and refresh rate
+echo "Screen width: {$screen->getScreenWidth()}, height: {$screen->getScreenHeight()}. Displaying {$screen->getStepsToShow()} steps.\n";
+echo "Refresh rate: {$config->getNestedParameter('settings', 'refreshRate')} seconds.\n";
+echo "Going to wait for {$config->getNestedParameter('settings', 'refreshRate')} seconds to collect data after establishing connection to device(s)...\n";
 
-// We have to differentiate between "utility start" and ISP "failed & recovered" (or LAN adapter reset) situations
-$utility_start = true;
+$utilityStart = true;
 
-// Global loop. With keyboard events processing considerations.
-if ($config->getNestedParameter('settings', 'checkForKeyboardEvents') !== 'Y') {
-    // Normal workflow without keyboard events processing
-
+// Main loop
+if (!$keyboardEvents) {
+    // Workflow without keyboard events
     while (true) {
         try {
-            $worker->globalInit($router, $config, $screen, $utility_start);
+            $worker->globalInit($router, $config, $screen, $utilityStart);
             while (true) {
-                $worker->globalStep($router, $config, $screen, $utility_start);
+                $worker->globalStep($router, $config, $screen, $utilityStart);
             }
-        } catch (Exception) {
+        } catch (Exception $e) {
             $worker->refreshAfterException($screen, $config);
         }
     }
-
 } else {
-    // Experimental feature: keyboard events processing
+    // Workflow with keyboard events
     ob_implicit_flush(true);
 
-    // Platform-specific setup for key detection
     if (PHP_OS_FAMILY !== 'Windows') {
-        // Linux/macOS: Set terminal to raw mode for non-blocking key press detection
         system('stty -icanon -echo');
         $stdin = fopen("php://stdin", "r");
         stream_set_blocking($stdin, false);
     }
 
-
     while (true) {
         try {
-            $worker->globalInit($router, $config, $screen, $utility_start);
+            $worker->globalInit($router, $config, $screen, $utilityStart);
 
             while (true) {
-
+                // Platform-specific key press handling
                 if (PHP_OS_FAMILY === 'Windows') {
-                    // Windows: Use 'choice' command to check for key press in a non-blocking way
                     $key = shell_exec('choice /c abcdefghijklmnopqrstuvwxyz /n /t 1 /d Z /m ""');
                 } else {
-                    // Linux/macOS: Read a single character from STDIN in non-blocking mode
-                    system('stty -icanon -echo');
-                    $stdin = fopen("php://stdin", "r");
-                    stream_set_blocking($stdin, false);
                     $key = fread($stdin, 1);
                 }
 
-                if ((str_contains(($key ?? ''), 'Q')) || (str_contains(($key ?? ''), 'q'))) {
+                // Handle keypress actions
+                if (isset($key) && str_contains(strtolower($key), 'q')) {
                     $screen->clearScreen();
                     echo "Quitting...\n";
                     exit(0);
-                }
-
-                if ((str_contains(($key ?? ''), 'I')) || (str_contains(($key ?? ''), 'i'))) {
+                } elseif (isset($key) && str_contains(strtolower($key), 'i')) {
                     $screen->clearScreen();
-                    echo "Initializing...\n";
+                    echo "Reinitializing...\n";
                     sleep(1);
-                    $utility_start = true;
-                    $worker->globalInit($router, $config, $screen, $utility_start);
+                    $utilityStart = true;
+                    $worker->globalInit($router, $config, $screen, $utilityStart);
                 }
 
-                if (PHP_OS_FAMILY !== 'Windows') {
-                    system('stty sane');
-                    fclose($stdin);
-                }
-
-                $worker->globalStep($router, $config, $screen, $utility_start);
+                $worker->globalStep($router, $config, $screen, $utilityStart);
             }
-        } catch (Exception) {
+        } catch (Exception $e) {
             $worker->refreshAfterException($screen, $config);
         }
     }
 
+    if (PHP_OS_FAMILY !== 'Windows') {
+        system('stty sane');
+        fclose($stdin);
+    }
 }

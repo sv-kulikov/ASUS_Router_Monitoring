@@ -18,14 +18,18 @@ class Connection
      * @param string $routerPassword Password for the router.
      * @param int $routerPort Port number for the SSH connection.
      * @return SSH2 SSH client instance.
-     * @throws Exception If login to the router fails.
+     * @throws Exception If connection or login to the router fails.
      */
     public function getConnection(string $routerIp, string $routerLogin, string $routerPassword, int $routerPort): SSH2
     {
+        // Initialize the SSH client
         $sshClient = new SSH2($routerIp, $routerPort);
+
+        // Attempt to login with provided credentials
         if (!$sshClient->login($routerLogin, $routerPassword)) {
-            throw new Exception("Login to router failed.");
+            throw new Exception("Failed to login to router at IP: $routerIp, Port: $routerPort.");
         }
+
         return $sshClient;
     }
 }

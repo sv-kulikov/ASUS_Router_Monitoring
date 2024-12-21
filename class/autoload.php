@@ -1,28 +1,36 @@
 <?php
 
 /**
- * Registers class autoloader.
- * @param $class string The fully-qualified class name.
+ * This function dynamically loads classes based on their fully-qualified names.
+ *
+ * @param string $class The fully-qualified class name.
  * @return void
  */
 spl_autoload_register(function ($class) {
-
+    // Define the namespace prefix for this autoloader
     $prefix = 'Sv\\Network\\VmsRtbw\\';
 
-    $base_dir = __DIR__ . '/';
+    // Define the base directory for the namespace prefix
+    $baseDir = __DIR__ . '/';
 
-    $len = strlen($prefix);
-    if (strncmp($prefix, $class, $len) !== 0) {
+    // Check if the class uses the specified namespace prefix
+    $prefixLength = strlen($prefix);
+    if (strncmp($prefix, $class, $prefixLength) !== 0) {
+        // If the class is not in the namespace, skip this autoloader
         return;
     }
 
-    $relative_class = substr($class, $len);
+    // Remove the namespace prefix from the class name to get the relative class path
+    $relativeClass = substr($class, $prefixLength);
 
-    $file = str_replace('\\', '/', $base_dir . $relative_class) . '.php';
+    // Replace namespace separators with directory separators and append .php extension
+    $filePath = $baseDir . str_replace('\\', '/', $relativeClass) . '.php';
 
-    if (file_exists($file)) {
-        require $file;
+    // Check if the file exists and include it, otherwise throw an error
+    if (file_exists($filePath)) {
+        require $filePath;
     } else {
-        echo "File $file not found";
+        // Log an error instead of just echoing, to follow best practices
+        error_log("Autoloader: file not found for class [$class] at path [$filePath]!");
     }
 });

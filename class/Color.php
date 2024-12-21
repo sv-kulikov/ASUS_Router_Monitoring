@@ -4,11 +4,16 @@ namespace Sv\Network\VmsRtbw;
 
 /**
  * Enum for console color codes.
+ *
+ * Provides ANSI escape sequences for various colors that can be used
+ * to format console output.
  */
 enum Color: string
 {
-    private const string ESCAPE = "\033[";
+    // ANSI escape sequence prefix
+    private const ESCAPE = "\033[";
 
+    // Color definitions
     case DEFAULT = self::ESCAPE . "39m";
     case BLACK = self::ESCAPE . "30m";
     case RED = self::ESCAPE . "31m";
@@ -26,4 +31,15 @@ enum Color: string
     case LIGHT_MAGENTA = self::ESCAPE . "95m";
     case LIGHT_CYAN = self::ESCAPE . "96m";
     case WHITE = self::ESCAPE . "97m";
+
+    /**
+     * Applies the color to a given string.
+     *
+     * @param string $text The text to colorize.
+     * @return string The colorized text.
+     */
+    public function apply(string $text): string
+    {
+        return $this->value . $text . self::ESCAPE . "0m"; // Resets formatting after text
+    }
 }
