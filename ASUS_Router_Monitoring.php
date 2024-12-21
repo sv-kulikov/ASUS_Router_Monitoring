@@ -52,7 +52,13 @@ if ($config->getParameter('isAdmin')) {
 if ($config->getNestedParameter('settings', 'checkForKeyboardEvents') !== 'Y') {
     echo "Keyboard events are disabled. Good.\n";
 } else {
-    echo "Keyboard events are enabled. The Hell will loose now.\n";
+    echo "Keyboard events are enabled. The Hell will break loose now.\n";
+}
+
+if ($this->config['settings']['showDetailedDevicesData'] !== 'Y') {
+    echo "Detailed devices data is disabled. It is recommended to enable (unless you have compatibility issues).\n";
+} else {
+    echo "Detailed devices data is enabled. Good.\n";
 }
 
 // Check and adjust log settings

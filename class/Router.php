@@ -421,13 +421,13 @@ class Router
                 }
             }
 
-            $hardwareData['cpu_temp_max'] = (float)$maxTemp;
-            $hardwareData['cpu_temp_min'] = (float)$minTemp;
+            $hardwareData['cpuTempMax'] = (float)$maxTemp;
+            $hardwareData['cpuTempMin'] = (float)$minTemp;
 
-            if ($hardwareData['cpu_temp_min'] == $hardwareData['cpu_temp_max']) {
-                $hardwareData['cpu_temp'] = $hardwareData['cpu_temp_min'];
+            if ($hardwareData['cpuTempMin'] == $hardwareData['cpuTempMax']) {
+                $hardwareData['cpuTempString'] = $hardwareData['cpuTempMin'];
             } else {
-                $hardwareData['cpu_temp'] = $hardwareData['cpu_temp_min'] . '-' . $hardwareData['cpu_temp_max'];
+                $hardwareData['cpuTempString'] = $hardwareData['cpuTempMin'] . '-' . $hardwareData['cpuTempMax'];
             }
 
             $sshResponse = $hardwareData['ssh']->exec('uptime; cat /proc/uptime');
@@ -461,6 +461,7 @@ class Router
             }
 
             preg_match_all("/load average:\s+([\d,.]+),\s+([\d,.]+),\s+([\d,.]+)/", $sshResponse, $loadAverageArray, PREG_SET_ORDER);
+
             if (isset($loadAverageArray[0][0])) {
                 $hardwareData['loadAverage'] = $loadAverageArray[0][0];
                 $hardwareData['loadAverage1i'] = $loadAverageArray[0][1];
@@ -482,13 +483,57 @@ class Router
             }
 
             if ($this->config['settings']['showDetailedDevicesData'] == 'Y') {
-                $hooksRawResult = $hardwareData['hooks']->execApiCommands(['get_wan_lan_status()', 'get_allclientlist()']);
+                $hooksRawResult = $hardwareData['hooks']->execApiCommands(['get_wan_lan_status()', 'get_allclientlist()', 'cpu_usage(appobj)', 'memory_usage(appobj)']);
                 $hooksCleanResults = array();
                 foreach ($hooksRawResult as $oneResultCommand => $oneResultData) {
                     $hooksCleanResults[$oneResultCommand] = json_decode($oneResultData['response'], true);
                 }
                 $hardwareData['hooksResults'] = $hooksCleanResults;
+
+                // Clients count
+                $clientsList = $hardwareData['hooksResults']['get_allclientlist()']['get_allclientlist'] ?? [];
+                $clientsList = reset($clientsList);
+                $hardwareData['clientsCount'] = count($clientsList['wired_mac'] ?? []);
+
+                // CPU Loads
+                $hardwareData['cpuLoadRAW'] = $hardwareData['hooksResults']['cpu_usage(appobj)']['cpu_usage'] ?? '[]';
+                $minLoad = PHP_FLOAT_MAX;
+                $maxLoad = PHP_FLOAT_MIN;
+                $cpuLoads = [];
+
+                foreach ($hardwareData['cpuLoadRAW'] as $loadKey => $loadValue) {
+                    if (strpos($loadKey, '_usage') !== false) {
+                        $cpuIndex = str_replace('_usage', '', $loadKey);
+                        $totalKey = $cpuIndex . '_total';
+
+                        if (isset($hardwareData['cpuLoadRAW'][$totalKey]) && $hardwareData['cpuLoadRAW'][$totalKey] > 0) {
+                            $load = ($loadValue / $hardwareData['cpuLoadRAW'][$totalKey]) * 100;
+                            $cpuLoads[$cpuIndex] = $load;
+
+                            // Update min and max
+                            if ($load < $minLoad) $minLoad = $load;
+                            if ($load > $maxLoad) $maxLoad = $load;
+                        }
+                    }
+                }
+
+                $hardwareData['cpuCoresCount'] = count($cpuLoads);
+                $hardwareData['cpuLoadsPerc'] = $cpuLoads;
+                $hardwareData['cpuLoadMinPerc'] = (int)round($minLoad);
+                $hardwareData['cpuLoadMaxPerc'] = (int)round($maxLoad);
+                if ($hardwareData['cpuCoresCount'] == 1) {
+                    $hardwareData['cpuLoadString'] = $hardwareData['cpuLoadMinPerc'];
+                } else {
+                    $hardwareData['cpuLoadString'] = $hardwareData['cpuLoadMinPerc'] . '-' . $hardwareData['cpuLoadMaxPerc'];
+                }
             }
+
+            // Memory usage
+            $hardwareData['memoryUsageRAW'] = $hardwareData['hooksResults']['memory_usage(appobj)']['memory_usage'] ?? '[]';
+            $hardwareData['memoryTotal'] = (int)(($hardwareData['memoryUsageRAW']['mem_total'] ?? 0) / 1024);
+            $hardwareData['memoryUsed'] = (int)(($hardwareData['memoryUsageRAW']['mem_used'] ?? 0) / 1024);
+            $hardwareData['memoryUsedPerc'] = (int)round($hardwareData['memoryUsed'] * 100 / max($hardwareData['memoryTotal'], 1));
+            $hardwareData['memoryUsageString'] = $hardwareData['memoryUsedPerc'] . '% ' . $hardwareData['memoryUsed'] . 'MB';
 
             $hardwareDataArray[$hardwareName] = $hardwareData;
 
