@@ -317,7 +317,6 @@ class Screen
     private function getCumulativeMinMaxAvgRxTxSpeeds(array $providers): string
     {
         $currentDateTime = new DateTime();
-        $diff = $this->config['globalStartDateTime']->diff($currentDateTime);
         $diffUtility = $this->configObject->getParameter('globalStartDateTime')->diff($currentDateTime);
 
         $speedsDataAsText = str_repeat(' ', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1);

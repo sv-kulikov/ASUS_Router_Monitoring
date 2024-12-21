@@ -11,7 +11,7 @@ namespace Sv\Network\VmsRtbw;
 enum Color: string
 {
     // ANSI escape sequence prefix
-    private const ESCAPE = "\033[";
+    private const string ESCAPE = "\033[";
 
     // Color definitions
     case DEFAULT = self::ESCAPE . "39m";
@@ -31,15 +31,4 @@ enum Color: string
     case LIGHT_MAGENTA = self::ESCAPE . "95m";
     case LIGHT_CYAN = self::ESCAPE . "96m";
     case WHITE = self::ESCAPE . "97m";
-
-    /**
-     * Applies the color to a given string.
-     *
-     * @param string $text The text to colorize.
-     * @return string The colorized text.
-     */
-    public function apply(string $text): string
-    {
-        return $this->value . $text . self::ESCAPE . "0m"; // Resets formatting after text
-    }
 }

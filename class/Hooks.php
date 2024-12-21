@@ -5,6 +5,8 @@
 
 namespace Sv\Network\VmsRtbw;
 
+use Exception;
+
 /**
  * Class Hooks provides methods to execute API commands on an Asus router.
  *
@@ -34,7 +36,7 @@ class Hooks
      * Retrieves the authentication token required for API calls.
      *
      * @return string The authentication token.
-     * @throws \Exception If the token retrieval fails.
+     * @throws Exception If the token retrieval fails.
      */
     private function getToken(): string
     {
@@ -55,12 +57,12 @@ class Hooks
         curl_close($curlObject);
 
         if ($statusCode !== 200 || $response === false) {
-            throw new \Exception("Failed to retrieve authentication token from router.");
+            throw new Exception("Failed to retrieve authentication token from router.");
         }
 
         $responseData = json_decode($response, true);
         if (!isset($responseData['asus_token'])) {
-            throw new \Exception("Invalid response: Token not found.");
+            throw new Exception("Invalid response: Token not found.");
         }
 
         return $responseData['asus_token'];
@@ -71,7 +73,7 @@ class Hooks
      *
      * @param array $apiCommands List of API commands to execute.
      * @return array An associative array containing the status code and response for each command.
-     * @throws \Exception If any API call fails.
+     * @throws Exception If any API call fails.
      */
     public function execApiCommands(array $apiCommands): array
     {

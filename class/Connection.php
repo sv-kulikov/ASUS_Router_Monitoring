@@ -25,7 +25,7 @@ class Connection
         // Initialize the SSH client
         $sshClient = new SSH2($routerIp, $routerPort);
 
-        // Attempt to login with provided credentials
+        // Attempt to log in with provided credentials
         if (!$sshClient->login($routerLogin, $routerPassword)) {
             throw new Exception("Failed to login to router at IP: $routerIp, Port: $routerPort.");
         }

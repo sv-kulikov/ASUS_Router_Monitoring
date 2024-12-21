@@ -23,7 +23,7 @@ class Worker
      *
      * @return void
      */
-    public function globalInit(&$router, &$config, &$screen, &$utility_start): void
+    public function globalInit(?Router &$router, ?Config &$config, ?Screen &$screen, bool &$utility_start): void
     {
         // Create new connections to router and repeater
         $connectionToRouter = new Connection();
@@ -56,7 +56,7 @@ class Worker
      *
      * @return void
      */
-    public function globalStep(&$router, &$config, &$screen, &$utility_start): void
+    public function globalStep(?Router &$router, ?Config &$config, ?Screen &$screen, bool &$utility_start): void
     {
         // Refresh various data sources in the router
         $router->refreshAdaptersData();

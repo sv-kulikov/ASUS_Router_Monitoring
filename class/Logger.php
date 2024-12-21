@@ -2,6 +2,8 @@
 
 namespace Sv\Network\VmsRtbw;
 
+use RuntimeException;
+
 /**
  * Class Logger provides methods to log data to files.
  */
@@ -29,9 +31,9 @@ class Logger
             if ($this->logFullPath && is_dir($this->logFullPath) && is_writable($this->logFullPath)) {
                 echo $this->config['settings']['demo']
                     ? "Logging enabled. In demo mode the log file name is hidden.\n"
-                    : "Logging to: [{$this->logFullPath}]\n";
+                    : "Logging to: [$this->logFullPath]\n";
             } else {
-                echo "Logging directory [{$this->logFullPath}] is invalid or not writable! Logging is disabled.\n";
+                echo "Logging directory [$this->logFullPath] is invalid or not writable! Logging is disabled.\n";
                 $this->config['settings']['logData'] = 'N';
             }
         } else {
@@ -77,7 +79,7 @@ class Logger
             if (!is_file($fileName)) {
                 $file = fopen($fileName, 'w');
                 if ($file === false) {
-                    throw new \RuntimeException("Failed to create log file: {$fileName}");
+                    throw new RuntimeException("Failed to create log file: $fileName");
                 }
                 fputcsv($file, array_keys($data));
                 fclose($file);
@@ -86,11 +88,11 @@ class Logger
             // Append data to the file
             $file = fopen($fileName, 'a');
             if ($file === false) {
-                throw new \RuntimeException("Failed to open log file for writing: {$fileName}");
+                throw new RuntimeException("Failed to open log file for writing: $fileName");
             }
             fputcsv($file, array_values($data));
             fclose($file);
-        } catch (\RuntimeException $e) {
+        } catch (RuntimeException $e) {
             echo "Logging error: " . $e->getMessage() . "\n";
         }
     }

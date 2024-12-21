@@ -130,7 +130,7 @@ class Config
      *
      * @param string $parameterNameLevel1 The top-level parameter name.
      * @param string $parameterNameLevel2 The nested parameter name.
-     * @return string|int|bool The nested parameter value or null if not found.
+     * @return string|int|bool|null The nested parameter value or null if not found.
      */
     public function getNestedParameter(string $parameterNameLevel1, string $parameterNameLevel2): string|int|bool|null
     {

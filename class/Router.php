@@ -502,7 +502,7 @@ class Router
                 $cpuLoads = [];
 
                 foreach ($hardwareData['cpuLoadRAW'] as $loadKey => $loadValue) {
-                    if (strpos($loadKey, '_usage') !== false) {
+                    if (str_contains($loadKey, '_usage')) {
                         $cpuIndex = str_replace('_usage', '', $loadKey);
                         $totalKey = $cpuIndex . '_total';
 
