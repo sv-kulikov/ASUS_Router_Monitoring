@@ -90,7 +90,7 @@ class Logger
             if ($file === false) {
                 throw new RuntimeException("Failed to open log file for writing: $fileName");
             }
-            fputcsv($file, array_values($data));
+            fputcsv($file, array_values($data), ',', '"', '\\', PHP_EOL);
             fclose($file);
         } catch (RuntimeException $e) {
             echo "Logging error: " . $e->getMessage() . "\n";

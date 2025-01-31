@@ -170,7 +170,7 @@ class Screen
                 $providerData['providerName'] = 'Provider';
             }
 
-            $providerNameWithData = $this->getColoredText($providerData['providerName'], Color::LIGHT_GREEN);
+            $providerNameWithData = $this->getColoredText($providerData['providerName'] ?? '', Color::LIGHT_GREEN);
 
             if (!empty($providerData['ip'])) {
                 $providerNameWithData .= $this->getColoredText(' (' . $providerData['ip'], Color::LIGHT_GREEN);

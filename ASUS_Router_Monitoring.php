@@ -86,6 +86,7 @@ if (!$keyboardEvents) {
                 $worker->globalStep($router, $config, $screen);
             }
         } catch (Exception $e) {
+            $utilityStart = true;
             $worker->refreshAfterException($screen, $config);
         }
     }
