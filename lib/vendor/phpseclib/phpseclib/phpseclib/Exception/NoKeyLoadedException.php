@@ -11,6 +11,8 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
+declare(strict_types=1);
+
 namespace phpseclib3\Exception;
 
 /**
@@ -18,6 +20,6 @@ namespace phpseclib3\Exception;
  *
  * @author  Jim Wigginton <terrafrost@php.net>
  */
-class NoKeyLoadedException extends \RuntimeException
+class NoKeyLoadedException extends \RuntimeException implements ExceptionInterface
 {
 }

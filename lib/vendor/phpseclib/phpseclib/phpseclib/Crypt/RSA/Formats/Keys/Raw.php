@@ -21,8 +21,12 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
+declare(strict_types=1);
+
 namespace phpseclib3\Crypt\RSA\Formats\Keys;
 
+use phpseclib3\Exception\UnexpectedValueException;
+use phpseclib3\Exception\UnsupportedFormatException;
 use phpseclib3\Math\BigInteger;
 
 /**
@@ -35,14 +39,12 @@ abstract class Raw
     /**
      * Break a public or private key down into its constituent components
      *
-     * @param string $key
-     * @param string $password optional
-     * @return array
+     * @param string|array $key
      */
-    public static function load($key, $password = '')
+    public static function load($key, ?string $password = null): array
     {
         if (!is_array($key)) {
-            throw new \UnexpectedValueException('Key should be a array - not a ' . gettype($key));
+            throw new UnexpectedValueException('Key should be a array - not a ' . gettype($key));
         }
 
         $key = array_change_key_case($key, CASE_LOWER);
@@ -64,7 +66,7 @@ abstract class Raw
         }
 
         if (!isset($components['publicExponent']) || !isset($components['modulus'])) {
-            throw new \UnexpectedValueException('Modulus / exponent not present');
+            throw new UnexpectedValueException('Modulus / exponent not present');
         }
 
         if (isset($key['primes'])) {
@@ -72,10 +74,10 @@ abstract class Raw
         } elseif (isset($key['p']) && isset($key['q'])) {
             $indices = [
                 ['p', 'q'],
-                ['prime1', 'prime2']
+                ['prime1', 'prime2'],
             ];
             foreach ($indices as $index) {
-                list($i0, $i1) = $index;
+                [$i0, $i1] = $index;
                 if (isset($key[$i0]) && isset($key[$i1])) {
                     $components['primes'] = [1 => $key[$i0], $key[$i1]];
                 }
@@ -87,10 +89,10 @@ abstract class Raw
         } else {
             $indices = [
                 ['dp', 'dq'],
-                ['exponent1', 'exponent2']
+                ['exponent1', 'exponent2'],
             ];
             foreach ($indices as $index) {
-                list($i0, $i1) = $index;
+                [$i0, $i1] = $index;
                 if (isset($key[$i0]) && isset($key[$i1])) {
                     $components['exponents'] = [1 => $key[$i0], $key[$i1]];
                 }
@@ -137,47 +139,27 @@ abstract class Raw
 
     /**
      * Convert a private key to the appropriate format.
-     *
-     * @param \phpseclib3\Math\BigInteger $n
-     * @param \phpseclib3\Math\BigInteger $e
-     * @param \phpseclib3\Math\BigInteger $d
-     * @param array $primes
-     * @param array $exponents
-     * @param array $coefficients
-     * @param string $password optional
-     * @param array $options optional
-     * @return array
      */
-    public static function savePrivateKey(BigInteger $n, BigInteger $e, BigInteger $d, array $primes, array $exponents, array $coefficients, $password = '', array $options = [])
+    public static function savePrivateKey(BigInteger $n, BigInteger $e, BigInteger $d, array $primes, array $exponents, array $coefficients, ?string $password = null, array $options = []): string
     {
         if (!empty($password) && is_string($password)) {
             throw new UnsupportedFormatException('Raw private keys do not support encryption');
         }
 
-        return [
+        return serialize([
             'e' => clone $e,
             'n' => clone $n,
             'd' => clone $d,
-            'primes' => array_map(function ($var) {
-                return clone $var;
-            }, $primes),
-            'exponents' => array_map(function ($var) {
-                return clone $var;
-            }, $exponents),
-            'coefficients' => array_map(function ($var) {
-                return clone $var;
-            }, $coefficients)
-        ];
+            'primes' => array_map(fn ($var) => clone $var, $primes),
+            'exponents' => array_map(fn ($var) => clone $var, $exponents),
+            'coefficients' => array_map(fn ($var) => clone $var, $coefficients),
+        ]);
     }
 
     /**
      * Convert a public key to the appropriate format
-     *
-     * @param \phpseclib3\Math\BigInteger $n
-     * @param \phpseclib3\Math\BigInteger $e
-     * @return array
      */
-    public static function savePublicKey(BigInteger $n, BigInteger $e)
+    public static function savePublicKey(BigInteger $n, BigInteger $e): array
     {
         return ['e' => clone $e, 'n' => clone $n];
     }

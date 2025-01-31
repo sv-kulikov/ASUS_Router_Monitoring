@@ -11,6 +11,8 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
+declare(strict_types=1);
+
 namespace phpseclib3\File\ASN1\Maps;
 
 use phpseclib3\File\ASN1;
@@ -22,7 +24,7 @@ use phpseclib3\File\ASN1;
  */
 abstract class Attribute
 {
-    const MAP = [
+    public const MAP = [
         'type' => ASN1::TYPE_SEQUENCE,
         'children' => [
             'type' => AttributeType::MAP,
@@ -30,8 +32,8 @@ abstract class Attribute
                 'type' => ASN1::TYPE_SET,
                 'min' => 1,
                 'max' => -1,
-                'children' => AttributeValue::MAP
-            ]
-        ]
+                'children' => AttributeValue::MAP,
+            ],
+        ],
     ];
 }

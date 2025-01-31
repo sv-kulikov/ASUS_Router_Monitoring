@@ -15,6 +15,8 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
+declare(strict_types=1);
+
 namespace phpseclib3\Crypt\EC\Formats\Signature;
 
 use phpseclib3\Math\BigInteger;
@@ -51,16 +53,12 @@ abstract class IEEE
 
     /**
      * Returns a signature in the appropriate format
-     *
-     * @param \phpseclib3\Math\BigInteger $r
-     * @param \phpseclib3\Math\BigInteger $s
-     * @return string
      */
-    public static function save(BigInteger $r, BigInteger $s)
+    public static function save(BigInteger $r, BigInteger $s, string $curve, int $length): string
     {
         $r = $r->toBytes();
         $s = $s->toBytes();
-        $len = max(strlen($r), strlen($s));
-        return str_pad($r, $len, "\0", STR_PAD_LEFT) . str_pad($s, $len, "\0", STR_PAD_LEFT);
+        $length = (int) ceil($length / 8);
+        return str_pad($r, $length, "\0", STR_PAD_LEFT) . str_pad($s, $length, "\0", STR_PAD_LEFT);
     }
 }

@@ -11,6 +11,8 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
+declare(strict_types=1);
+
 namespace phpseclib3\File\ASN1\Maps;
 
 use phpseclib3\File\ASN1;
@@ -22,15 +24,15 @@ use phpseclib3\File\ASN1;
  */
 abstract class Characteristic_two
 {
-    const MAP = [
+    public const MAP = [
         'type' => ASN1::TYPE_SEQUENCE,
         'children' => [
             'm' => ['type' => ASN1::TYPE_INTEGER], // field size 2**m
             'basis' => ['type' => ASN1::TYPE_OBJECT_IDENTIFIER],
             'parameters' => [
                 'type' => ASN1::TYPE_ANY,
-                'optional' => true
-            ]
-        ]
+                'optional' => true,
+            ],
+        ],
     ];
 }

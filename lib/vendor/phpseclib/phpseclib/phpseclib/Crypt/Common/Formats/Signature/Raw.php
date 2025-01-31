@@ -13,6 +13,8 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
+declare(strict_types=1);
+
 namespace phpseclib3\Crypt\Common\Formats\Signature;
 
 use phpseclib3\Math\BigInteger;
@@ -27,10 +29,9 @@ abstract class Raw
     /**
      * Loads a signature
      *
-     * @param array $sig
      * @return array|bool
      */
-    public static function load($sig)
+    public static function load(array $sig)
     {
         switch (true) {
             case !is_array($sig):
@@ -42,18 +43,14 @@ abstract class Raw
 
         return [
             'r' => $sig['r'],
-            's' => $sig['s']
+            's' => $sig['s'],
         ];
     }
 
     /**
      * Returns a signature in the appropriate format
-     *
-     * @param \phpseclib3\Math\BigInteger $r
-     * @param \phpseclib3\Math\BigInteger $s
-     * @return string
      */
-    public static function save(BigInteger $r, BigInteger $s)
+    public static function save(BigInteger $r, BigInteger $s): string
     {
         return compact('r', 's');
     }

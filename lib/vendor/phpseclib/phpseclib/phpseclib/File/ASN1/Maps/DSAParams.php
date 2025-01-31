@@ -11,6 +11,8 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
+declare(strict_types=1);
+
 namespace phpseclib3\File\ASN1\Maps;
 
 use phpseclib3\File\ASN1;
@@ -22,12 +24,12 @@ use phpseclib3\File\ASN1;
  */
 abstract class DSAParams
 {
-    const MAP = [
+    public const MAP = [
         'type' => ASN1::TYPE_SEQUENCE,
         'children' => [
             'p' => ['type' => ASN1::TYPE_INTEGER],
             'q' => ['type' => ASN1::TYPE_INTEGER],
-            'g' => ['type' => ASN1::TYPE_INTEGER]
-        ]
+            'g' => ['type' => ASN1::TYPE_INTEGER],
+        ],
     ];
 }

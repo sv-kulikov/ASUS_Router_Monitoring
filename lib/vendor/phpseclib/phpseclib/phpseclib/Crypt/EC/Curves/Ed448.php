@@ -10,17 +10,22 @@
  * @license   http://www.opensource.org/licenses/mit-license.html  MIT License
  */
 
+declare(strict_types=1);
+
 namespace phpseclib3\Crypt\EC\Curves;
 
 use phpseclib3\Crypt\EC\BaseCurves\TwistedEdwards;
 use phpseclib3\Crypt\Hash;
 use phpseclib3\Crypt\Random;
+use phpseclib3\Exception\LengthException;
+use phpseclib3\Exception\RuntimeException;
 use phpseclib3\Math\BigInteger;
+use phpseclib3\Math\PrimeField\Integer;
 
 class Ed448 extends TwistedEdwards
 {
-    const HASH = 'shake256-912';
-    const SIZE = 57;
+    public const HASH = 'shake256-912';
+    public const SIZE = 57;
 
     public function __construct()
     {
@@ -56,11 +61,10 @@ class Ed448 extends TwistedEdwards
      *
      * Used by EC\Keys\Common.php
      *
-     * @param BigInteger $y
      * @param boolean $sign
      * @return object[]
      */
-    public function recoverX(BigInteger $y, $sign)
+    public function recoverX(BigInteger $y, bool $sign): array
     {
         $y = $this->factory->newInteger($y);
 
@@ -70,7 +74,7 @@ class Ed448 extends TwistedEdwards
         $x2 = $u->divide($v);
         if ($x2->equals($this->zero)) {
             if ($sign) {
-                throw new \RuntimeException('Unable to recover X coordinate (x2 = 0)');
+                throw new RuntimeException('Unable to recover X coordinate (x2 = 0)');
             }
             return clone $this->zero;
         }
@@ -80,7 +84,7 @@ class Ed448 extends TwistedEdwards
         $x = $x2->pow($exp);
 
         if (!$x->multiply($x)->subtract($x2)->equals($this->zero)) {
-            throw new \RuntimeException('Unable to recover X coordinate');
+            throw new RuntimeException('Unable to recover X coordinate');
         }
         if ($x->isOdd() != $sign) {
             $x = $x->negate();
@@ -96,13 +100,12 @@ class Ed448 extends TwistedEdwards
      *
      * Used by the various key handlers
      *
-     * @param string $str
      * @return array
      */
-    public function extractSecret($str)
+    public function extractSecret(string $str)
     {
         if (strlen($str) != 57) {
-            throw new \LengthException('Private Key should be 57-bytes long');
+            throw new LengthException('Private Key should be 57-bytes long');
         }
         // 1.  Hash the 57-byte private key using SHAKE256(x, 114), storing the
         //     digest in a 114-octet large buffer, denoted h.  Only the lower 57
@@ -123,22 +126,16 @@ class Ed448 extends TwistedEdwards
 
         return [
             'dA' => $dA,
-            'secret' => $str
+            'secret' => $str,
         ];
-
-        $dA->secret = $str;
-        return $dA;
     }
 
     /**
      * Encode a point as a string
-     *
-     * @param array $point
-     * @return string
      */
-    public function encodePoint($point)
+    public function encodePoint(array $point): string
     {
-        list($x, $y) = $point;
+        [$x, $y] = $point;
         $y = "\0" . $y->toBytes();
         if ($x->isOdd()) {
             $y[0] = $y[0] | chr(0x80);
@@ -150,10 +147,8 @@ class Ed448 extends TwistedEdwards
 
     /**
      * Creates a random scalar multiplier
-     *
-     * @return \phpseclib3\Math\PrimeField\Integer
      */
-    public function createRandomMultiplier()
+    public function createRandomMultiplier(): BigInteger
     {
         return $this->extractSecret(Random::string(57))['dA'];
     }
@@ -166,9 +161,9 @@ class Ed448 extends TwistedEdwards
      * A point (x,y) is represented in extended homogeneous coordinates (X, Y, Z, T),
      * with x = X/Z, y = Y/Z, x * y = T/Z.
      *
-     * @return \phpseclib3\Math\PrimeField\Integer[]
+     * @return Integer[]
      */
-    public function convertToInternal(array $p)
+    public function convertToInternal(array $p): array
     {
         if (empty($p)) {
             return [clone $this->zero, clone $this->one, clone $this->one];
@@ -188,10 +183,10 @@ class Ed448 extends TwistedEdwards
      *
      * @return FiniteField[]
      */
-    public function doublePoint(array $p)
+    public function doublePoint(array $p): array
     {
         if (!isset($this->factory)) {
-            throw new \RuntimeException('setModulo needs to be called before this method');
+            throw new RuntimeException('setModulo needs to be called before this method');
         }
 
         if (!count($p)) {
@@ -199,12 +194,12 @@ class Ed448 extends TwistedEdwards
         }
 
         if (!isset($p[2])) {
-            throw new \RuntimeException('Affine coordinates need to be manually converted to "Jacobi" coordinates or vice versa');
+            throw new RuntimeException('Affine coordinates need to be manually converted to "Jacobi" coordinates or vice versa');
         }
 
         // from https://tools.ietf.org/html/rfc8032#page-18
 
-        list($x1, $y1, $z1) = $p;
+        [$x1, $y1, $z1] = $p;
 
         $b = $x1->add($y1);
         $b = $b->multiply($b);
@@ -226,10 +221,10 @@ class Ed448 extends TwistedEdwards
      *
      * @return FiniteField[]
      */
-    public function addPoint(array $p, array $q)
+    public function addPoint(array $p, array $q): array
     {
         if (!isset($this->factory)) {
-            throw new \RuntimeException('setModulo needs to be called before this method');
+            throw new RuntimeException('setModulo needs to be called before this method');
         }
 
         if (!count($p) || !count($q)) {
@@ -243,7 +238,7 @@ class Ed448 extends TwistedEdwards
         }
 
         if (!isset($p[2]) || !isset($q[2])) {
-            throw new \RuntimeException('Affine coordinates need to be manually converted to "Jacobi" coordinates or vice versa');
+            throw new RuntimeException('Affine coordinates need to be manually converted to "Jacobi" coordinates or vice versa');
         }
 
         if ($p[0]->equals($q[0])) {
@@ -252,8 +247,8 @@ class Ed448 extends TwistedEdwards
 
         // from https://tools.ietf.org/html/rfc8032#page-17
 
-        list($x1, $y1, $z1) = $p;
-        list($x2, $y2, $z2) = $q;
+        [$x1, $y1, $z1] = $p;
+        [$x2, $y2, $z2] = $q;
 
         $a = $z1->multiply($z2);
         $b = $a->multiply($a);

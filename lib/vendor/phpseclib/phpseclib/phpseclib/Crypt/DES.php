@@ -3,7 +3,7 @@
 /**
  * Pure-PHP implementation of DES.
  *
- * Uses mcrypt, if available, and an internal implementation, otherwise.
+ * Uses OpenSSL, if available/possible, and an internal implementation, otherwise
  *
  * PHP version 5
  *
@@ -38,10 +38,13 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
+declare(strict_types=1);
+
 namespace phpseclib3\Crypt;
 
 use phpseclib3\Crypt\Common\BlockCipher;
 use phpseclib3\Exception\BadModeException;
+use phpseclib3\Exception\LengthException;
 
 /**
  * Pure-PHP implementation of DES.
@@ -56,19 +59,19 @@ class DES extends BlockCipher
      * @see \phpseclib3\Crypt\DES::setupKey()
      * @see \phpseclib3\Crypt\DES::processBlock()
      */
-    const ENCRYPT = 0;
+    public const ENCRYPT = 0;
     /**
      * Contains $keys[self::DECRYPT]
      *
      * @see \phpseclib3\Crypt\DES::setupKey()
      * @see \phpseclib3\Crypt\DES::processBlock()
      */
-    const DECRYPT = 1;
+    public const DECRYPT = 1;
 
     /**
      * Block Length of the cipher
      *
-     * @see \phpseclib3\Crypt\Common\SymmetricKey::block_size
+     * @see Common\SymmetricKey::block_size
      * @var int
      */
     protected $block_size = 8;
@@ -76,40 +79,24 @@ class DES extends BlockCipher
     /**
      * Key Length (in bytes)
      *
-     * @see \phpseclib3\Crypt\Common\SymmetricKey::setKeyLength()
+     * @see Common\SymmetricKey::setKeyLength()
      * @var int
      */
     protected $key_length = 8;
 
     /**
-     * The mcrypt specific name of the cipher
-     *
-     * @see \phpseclib3\Crypt\Common\SymmetricKey::cipher_name_mcrypt
-     * @var string
-     */
-    protected $cipher_name_mcrypt = 'des';
-
-    /**
      * The OpenSSL names of the cipher / modes
      *
-     * @see \phpseclib3\Crypt\Common\SymmetricKey::openssl_mode_names
+     * @see Common\SymmetricKey::openssl_mode_names
      * @var array
      */
     protected $openssl_mode_names = [
         self::MODE_ECB => 'des-ecb',
         self::MODE_CBC => 'des-cbc',
         self::MODE_CFB => 'des-cfb',
-        self::MODE_OFB => 'des-ofb'
+        self::MODE_OFB => 'des-ofb',
         // self::MODE_CTR is undefined for DES
     ];
-
-    /**
-     * Optimizing value while CFB-encrypting
-     *
-     * @see \phpseclib3\Crypt\Common\SymmetricKey::cfb_init_len
-     * @var int
-     */
-    protected $cfb_init_len = 500;
 
     /**
      * Switch for DES/3DES encryption
@@ -285,7 +272,7 @@ class DES extends BlockCipher
         "\xFF\xFF\xFF\xFF\xFF\x00\x00\x00", "\xFF\xFF\xFF\xFF\xFF\x00\x00\xFF",
         "\xFF\xFF\xFF\xFF\xFF\x00\xFF\x00", "\xFF\xFF\xFF\xFF\xFF\x00\xFF\xFF",
         "\xFF\xFF\xFF\xFF\xFF\xFF\x00\x00", "\xFF\xFF\xFF\xFF\xFF\xFF\x00\xFF",
-        "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x00", "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF"
+        "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x00", "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
     ];
 
     /**
@@ -327,7 +314,7 @@ class DES extends BlockCipher
         0x8C, 0x9C, 0x8D, 0x9D, 0xAC, 0xBC, 0xAD, 0xBD,
         0x8E, 0x9E, 0x8F, 0x9F, 0xAE, 0xBE, 0xAF, 0xBF,
         0xCC, 0xDC, 0xCD, 0xDD, 0xEC, 0xFC, 0xED, 0xFD,
-        0xCE, 0xDE, 0xCF, 0xDF, 0xEE, 0xFE, 0xEF, 0xFF
+        0xCE, 0xDE, 0xCF, 0xDF, 0xEE, 0xFE, 0xEF, 0xFF,
     ];
 
     /**
@@ -368,7 +355,7 @@ class DES extends BlockCipher
         0x07, 0x87, 0x47, 0xC7, 0x27, 0xA7, 0x67, 0xE7,
         0x17, 0x97, 0x57, 0xD7, 0x37, 0xB7, 0x77, 0xF7,
         0x0F, 0x8F, 0x4F, 0xCF, 0x2F, 0xAF, 0x6F, 0xEF,
-        0x1F, 0x9F, 0x5F, 0xDF, 0x3F, 0xBF, 0x7F, 0xFF
+        0x1F, 0x9F, 0x5F, 0xDF, 0x3F, 0xBF, 0x7F, 0xFF,
     ];
 
     /**
@@ -395,7 +382,7 @@ class DES extends BlockCipher
         0x00808202, 0x00008002, 0x00808000, 0x00800202,
         0x00800002, 0x00000202, 0x00008202, 0x00808200,
         0x00000202, 0x00800200, 0x00800200, 0x00000000,
-        0x00008002, 0x00008200, 0x00000000, 0x00808002
+        0x00008002, 0x00008200, 0x00000000, 0x00808002,
     ];
 
     /**
@@ -419,7 +406,7 @@ class DES extends BlockCipher
         0x00004010, 0x40084000, 0x00080000, 0x40000010,
         0x00080010, 0x40004010, 0x40000010, 0x00080010,
         0x00084000, 0x00000000, 0x40004000, 0x00004010,
-        0x40000000, 0x40080010, 0x40084010, 0x00084000
+        0x40000000, 0x40080010, 0x40084010, 0x00084000,
     ];
 
     /**
@@ -443,7 +430,7 @@ class DES extends BlockCipher
         0x04000104, 0x00010000, 0x04000000, 0x04010104,
         0x00000004, 0x00010104, 0x00010100, 0x04000004,
         0x04010000, 0x04000104, 0x00000104, 0x04010000,
-        0x00010104, 0x00000004, 0x04010004, 0x00010100
+        0x00010104, 0x00000004, 0x04010004, 0x00010100,
     ];
 
     /**
@@ -467,7 +454,7 @@ class DES extends BlockCipher
         0x80401040, 0x80000040, 0x80000000, 0x00001000,
         0x80400000, 0x80001000, 0x00401040, 0x80400040,
         0x80001000, 0x00001040, 0x00400000, 0x80401000,
-        0x00000040, 0x00400000, 0x00001000, 0x00401040
+        0x00000040, 0x00400000, 0x00001000, 0x00401040,
     ];
 
     /**
@@ -491,7 +478,7 @@ class DES extends BlockCipher
         0x21040080, 0x00040080, 0x21000000, 0x21040080,
         0x01040000, 0x00000000, 0x20040000, 0x21000000,
         0x00040080, 0x01000080, 0x20000080, 0x00040000,
-        0x00000000, 0x20040000, 0x01040080, 0x20000080
+        0x00000000, 0x20040000, 0x01040080, 0x20000080,
     ];
 
     /**
@@ -515,7 +502,7 @@ class DES extends BlockCipher
         0x00202008, 0x10202000, 0x00000000, 0x10200008,
         0x00000008, 0x00002000, 0x10200000, 0x00202008,
         0x00002000, 0x00200008, 0x10002008, 0x00000000,
-        0x10202000, 0x10000000, 0x00200008, 0x10002008
+        0x10202000, 0x10000000, 0x00200008, 0x10002008,
     ];
 
     /**
@@ -539,7 +526,7 @@ class DES extends BlockCipher
         0x00000401, 0x02000001, 0x02100401, 0x02100000,
         0x00100400, 0x00000000, 0x00000001, 0x02100401,
         0x00000000, 0x00100401, 0x02100000, 0x00000400,
-        0x02000001, 0x02000400, 0x00000400, 0x00100001
+        0x02000001, 0x02000400, 0x00000400, 0x00100001,
     ];
 
     /**
@@ -563,16 +550,15 @@ class DES extends BlockCipher
         0x00000000, 0x08020820, 0x00020020, 0x08000020,
         0x08020000, 0x08000800, 0x08000820, 0x00000000,
         0x08020820, 0x00020800, 0x00020800, 0x00000820,
-        0x00000820, 0x00020020, 0x08000000, 0x08020800
+        0x00000820, 0x00020020, 0x08000000, 0x08020800,
     ];
 
     /**
      * Default Constructor.
      *
-     * @param string $mode
      * @throws BadModeException if an invalid / unsupported mode is provided
      */
-    public function __construct($mode)
+    public function __construct(string $mode)
     {
         parent::__construct($mode);
 
@@ -586,11 +572,9 @@ class DES extends BlockCipher
      *
      * This is mainly just a wrapper to set things up for \phpseclib3\Crypt\Common\SymmetricKey::isValidEngine()
      *
-     * @see \phpseclib3\Crypt\Common\SymmetricKey::isValidEngine()
-     * @param int $engine
-     * @return bool
+     * @see Common\SymmetricKey::isValidEngine()
      */
-    protected function isValidEngineHelper($engine)
+    protected function isValidEngineHelper(int $engine): bool
     {
         if ($this->key_length_max == 8) {
             if ($engine == self::ENGINE_OPENSSL) {
@@ -615,13 +599,12 @@ class DES extends BlockCipher
      *
      * DES also requires that every eighth bit be a parity bit, however, we'll ignore that.
      *
-     * @see \phpseclib3\Crypt\Common\SymmetricKey::setKey()
-     * @param string $key
+     * @see Common\SymmetricKey::setKey()
      */
-    public function setKey($key)
+    public function setKey(string $key): void
     {
         if (!($this instanceof TripleDES) && strlen($key) != 8) {
-            throw new \LengthException('Key of size ' . strlen($key) . ' not supported by this algorithm. Only keys of size 8 are supported');
+            throw new LengthException('Key of size ' . strlen($key) . ' not supported by this algorithm. Only keys of size 8 are supported');
         }
 
         // Sets the key
@@ -631,13 +614,11 @@ class DES extends BlockCipher
     /**
      * Encrypts a block
      *
-     * @see \phpseclib3\Crypt\Common\SymmetricKey::encryptBlock()
-     * @see \phpseclib3\Crypt\Common\SymmetricKey::encrypt()
      * @see self::encrypt()
-     * @param string $in
-     * @return string
+     * @see Common\SymmetricKey::encryptBlock()
+     * @see Common\SymmetricKey::encrypt()
      */
-    protected function encryptBlock($in)
+    protected function encryptBlock(string $in): string
     {
         return $this->processBlock($in, self::ENCRYPT);
     }
@@ -645,13 +626,11 @@ class DES extends BlockCipher
     /**
      * Decrypts a block
      *
-     * @see \phpseclib3\Crypt\Common\SymmetricKey::decryptBlock()
-     * @see \phpseclib3\Crypt\Common\SymmetricKey::decrypt()
      * @see self::decrypt()
-     * @param string $in
-     * @return string
+     * @see Common\SymmetricKey::decryptBlock()
+     * @see Common\SymmetricKey::decrypt()
      */
-    protected function decryptBlock($in)
+    protected function decryptBlock(string $in): string
     {
         return $this->processBlock($in, self::DECRYPT);
     }
@@ -663,13 +642,11 @@ class DES extends BlockCipher
      * {@link http://en.wikipedia.org/wiki/Image:Feistel.png Feistel.png} to get a general
      * idea of what this function does.
      *
-     * @see self::encryptBlock()
-     * @see self::decryptBlock()
-     * @param string $block
-     * @param int $mode
      * @return string
+     * @see self::decryptBlock()
+     * @see self::encryptBlock()
      */
-    private function processBlock($block, $mode)
+    private function processBlock(string $block, int $mode)
     {
         static $sbox1, $sbox2, $sbox3, $sbox4, $sbox5, $sbox6, $sbox7, $sbox8, $shuffleip, $shuffleinvip;
         if (!$sbox1) {
@@ -693,7 +670,7 @@ class DES extends BlockCipher
 
         // Do the initial IP permutation.
         $t = unpack('Nl/Nr', $block);
-        list($l, $r) = [$t['l'], $t['r']];
+        [$l, $r] = [$t['l'], $t['r']];
         $block = ($shuffleip[ $r        & 0xFF] & "\x80\x80\x80\x80\x80\x80\x80\x80") |
                  ($shuffleip[($r >>  8) & 0xFF] & "\x40\x40\x40\x40\x40\x40\x40\x40") |
                  ($shuffleip[($r >> 16) & 0xFF] & "\x20\x20\x20\x20\x20\x20\x20\x20") |
@@ -705,7 +682,7 @@ class DES extends BlockCipher
 
         // Extract L0 and R0.
         $t = unpack('Nl/Nr', $block);
-        list($l, $r) = [$t['l'], $t['r']];
+        [$l, $r] = [$t['l'], $t['r']];
 
         for ($des_round = 0; $des_round < $this->des_rounds; ++$des_round) {
             // Perform the 16 steps.
@@ -747,9 +724,9 @@ class DES extends BlockCipher
     /**
      * Creates the key schedule
      *
-     * @see \phpseclib3\Crypt\Common\SymmetricKey::setupKey()
+     * @see Common\SymmetricKey::setupKey()
      */
-    protected function setupKey()
+    protected function setupKey(): void
     {
         if (isset($this->kl['key']) && $this->key === $this->kl['key'] && $this->des_rounds === $this->kl['des_rounds']) {
             // already expanded
@@ -758,7 +735,7 @@ class DES extends BlockCipher
         $this->kl = ['key' => $this->key, 'des_rounds' => $this->des_rounds];
 
         static $shifts = [ // number of key bits shifted per round
-            1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1
+            1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1,
         ];
 
         static $pc1map = [
@@ -793,7 +770,7 @@ class DES extends BlockCipher
             0xE0, 0xE0, 0xE8, 0xE8, 0xE4, 0xE4, 0xEC, 0xEC,
             0xE2, 0xE2, 0xEA, 0xEA, 0xE6, 0xE6, 0xEE, 0xEE,
             0xF0, 0xF0, 0xF8, 0xF8, 0xF4, 0xF4, 0xFC, 0xFC,
-            0xF2, 0xF2, 0xFA, 0xFA, 0xF6, 0xF6, 0xFE, 0xFE
+            0xF2, 0xF2, 0xFA, 0xFA, 0xF6, 0xF6, 0xFE, 0xFE,
         ];
 
         // Mapping tables for the PC-2 transformation.
@@ -801,7 +778,7 @@ class DES extends BlockCipher
             0x00000000, 0x00000400, 0x00200000, 0x00200400,
             0x00000001, 0x00000401, 0x00200001, 0x00200401,
             0x02000000, 0x02000400, 0x02200000, 0x02200400,
-            0x02000001, 0x02000401, 0x02200001, 0x02200401
+            0x02000001, 0x02000401, 0x02200001, 0x02200401,
         ];
         static $pc2mapc2 = [
             0x00000000, 0x00000800, 0x08000000, 0x08000800,
@@ -867,7 +844,7 @@ class DES extends BlockCipher
             0x01040110, 0x01040910, 0x09040110, 0x09040910,
             0x01050110, 0x01050910, 0x09050110, 0x09050910,
             0x01040110, 0x01040910, 0x09040110, 0x09040910,
-            0x01050110, 0x01050910, 0x09050110, 0x09050910
+            0x01050110, 0x01050910, 0x09050110, 0x09050910,
         ];
         static $pc2mapc3 = [
             0x00000000, 0x00000004, 0x00001000, 0x00001004,
@@ -933,7 +910,7 @@ class DES extends BlockCipher
             0x20080022, 0x20080026, 0x20081022, 0x20081026,
             0x20080022, 0x20080026, 0x20081022, 0x20081026,
             0x30080022, 0x30080026, 0x30081022, 0x30081026,
-            0x30080022, 0x30080026, 0x30081022, 0x30081026
+            0x30080022, 0x30080026, 0x30081022, 0x30081026,
         ];
         static $pc2mapc4 = [
             0x00000000, 0x00100000, 0x00000008, 0x00100008,
@@ -999,13 +976,13 @@ class DES extends BlockCipher
             0x04022000, 0x04122000, 0x04022008, 0x04122008,
             0x04022200, 0x04122200, 0x04022208, 0x04122208,
             0x04022000, 0x04122000, 0x04022008, 0x04122008,
-            0x04022200, 0x04122200, 0x04022208, 0x04122208
+            0x04022200, 0x04122200, 0x04022208, 0x04122208,
         ];
         static $pc2mapd1 = [
             0x00000000, 0x00000001, 0x08000000, 0x08000001,
             0x00200000, 0x00200001, 0x08200000, 0x08200001,
             0x00000002, 0x00000003, 0x08000002, 0x08000003,
-            0x00200002, 0x00200003, 0x08200002, 0x08200003
+            0x00200002, 0x00200003, 0x08200002, 0x08200003,
         ];
         static $pc2mapd2 = [
             0x00000000, 0x00100000, 0x00000800, 0x00100800,
@@ -1071,7 +1048,7 @@ class DES extends BlockCipher
             0x00020204, 0x00120204, 0x00020A04, 0x00120A04,
             0x00020204, 0x00120204, 0x00020A04, 0x00120A04,
             0x04020204, 0x04120204, 0x04020A04, 0x04120A04,
-            0x04020204, 0x04120204, 0x04020A04, 0x04120A04
+            0x04020204, 0x04120204, 0x04020A04, 0x04120A04,
         ];
         static $pc2mapd3 = [
             0x00000000, 0x00010000, 0x02000000, 0x02010000,
@@ -1137,7 +1114,7 @@ class DES extends BlockCipher
             0x20002010, 0x20012010, 0x22002010, 0x22012010,
             0x20002030, 0x20012030, 0x22002030, 0x22012030,
             0x20042010, 0x20052010, 0x22042010, 0x22052010,
-            0x20042030, 0x20052030, 0x22042030, 0x22052030
+            0x20042030, 0x20052030, 0x22042030, 0x22052030,
         ];
         static $pc2mapd4 = [
             0x00000000, 0x00000400, 0x01000000, 0x01000400,
@@ -1203,7 +1180,7 @@ class DES extends BlockCipher
             0x10081008, 0x10081408, 0x11081008, 0x11081408,
             0x10081008, 0x10081408, 0x11081008, 0x11081408,
             0x10081108, 0x10081508, 0x11081108, 0x11081508,
-            0x10081108, 0x10081508, 0x11081108, 0x11081508
+            0x10081108, 0x10081508, 0x11081108, 0x11081508,
         ];
 
         $keys = [];
@@ -1213,7 +1190,7 @@ class DES extends BlockCipher
 
             // Perform the PC/1 transformation and compute C and D.
             $t = unpack('Nl/Nr', $key);
-            list($l, $r) = [$t['l'], $t['r']];
+            [$l, $r] = [$t['l'], $t['r']];
             $key = (self::$shuffle[$pc1map[ $r        & 0xFF]] & "\x80\x80\x80\x80\x80\x80\x80\x00") |
                    (self::$shuffle[$pc1map[($r >>  8) & 0xFF]] & "\x40\x40\x40\x40\x40\x40\x40\x00") |
                    (self::$shuffle[$pc1map[($r >> 16) & 0xFF]] & "\x20\x20\x20\x20\x20\x20\x20\x00") |
@@ -1228,7 +1205,7 @@ class DES extends BlockCipher
 
             $keys[$des_round] = [
                 self::ENCRYPT => [],
-                self::DECRYPT => array_fill(0, 32, 0)
+                self::DECRYPT => array_fill(0, 32, 0),
             ];
             for ($i = 0, $ki = 31; $i < 16; ++$i, $ki -= 2) {
                 $c <<= $shifts[$i];
@@ -1266,14 +1243,14 @@ class DES extends BlockCipher
                         $keys[2][self::DECRYPT],
                         $keys[1][self::ENCRYPT],
                         $keys[0][self::DECRYPT]
-                    )
+                    ),
                 ];
                 break;
             // case 1: // DES keys
             default:
                 $this->keys = [
                     self::ENCRYPT => $keys[0][self::ENCRYPT],
-                    self::DECRYPT => $keys[0][self::DECRYPT]
+                    self::DECRYPT => $keys[0][self::DECRYPT],
                 ];
         }
     }
@@ -1281,9 +1258,9 @@ class DES extends BlockCipher
     /**
      * Setup the performance-optimized function for de/encrypt()
      *
-     * @see \phpseclib3\Crypt\Common\SymmetricKey::setupInlineCrypt()
+     * @see Common\SymmetricKey::setupInlineCrypt()
      */
-    protected function setupInlineCrypt()
+    protected function setupInlineCrypt(): void
     {
         // Engine configuration for:
         // -  DES ($des_rounds == 1) or
@@ -1310,7 +1287,7 @@ class DES extends BlockCipher
 
         $k = [
             self::ENCRYPT => $this->keys[self::ENCRYPT],
-            self::DECRYPT => $this->keys[self::DECRYPT]
+            self::DECRYPT => $this->keys[self::DECRYPT],
         ];
         $init_encrypt = '';
         $init_decrypt = '';
@@ -1360,9 +1337,9 @@ class DES extends BlockCipher
                     // end of "the Feistel (F) function"
 
                     // swap L & R
-                    list($l, $r) = [$r, $l];
+                    [$l, $r] = [$r, $l];
                 }
-                list($l, $r) = [$r, $l];
+                [$l, $r] = [$r, $l];
             }
 
             // Perform the inverse IP permutation.
@@ -1385,7 +1362,7 @@ class DES extends BlockCipher
                'init_encrypt'  => $init_encrypt,
                'init_decrypt'  => $init_decrypt,
                'encrypt_block' => $crypt_block[self::ENCRYPT],
-               'decrypt_block' => $crypt_block[self::DECRYPT]
+               'decrypt_block' => $crypt_block[self::DECRYPT],
             ]
         );
     }

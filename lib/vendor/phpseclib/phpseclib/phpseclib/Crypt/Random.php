@@ -20,7 +20,11 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
+declare(strict_types=1);
+
 namespace phpseclib3\Crypt;
+
+use phpseclib3\Exception\RuntimeException;
 
 /**
  * Pure-PHP Random Number Generator
@@ -36,11 +40,9 @@ abstract class Random
      * microoptimizations because this function has the potential of being called a huge number of times.
      * eg. for RSA key generation.
      *
-     * @param int $length
-     * @throws \RuntimeException if a symmetric cipher is needed but not loaded
-     * @return string
+     * @throws RuntimeException if a symmetric cipher is needed but not loaded
      */
-    public static function string($length)
+    public static function string(int $length): string
     {
         if (!$length) {
             return '';
@@ -83,7 +85,7 @@ abstract class Random
             $old_session_id = session_id();
             $old_use_cookies = ini_get('session.use_cookies');
             $old_session_cache_limiter = session_cache_limiter();
-            $_OLD_SESSION = isset($_SESSION) ? $_SESSION : false;
+            $_OLD_SESSION = $_SESSION ?? false;
             if ($old_session_id != '') {
                 session_write_close();
             }
@@ -100,7 +102,7 @@ abstract class Random
                  // as of PHP 8.1 $GLOBALS can't be accessed by reference, which eliminates
                  // the need for phpseclib_safe_serialize. see https://wiki.php.net/rfc/restrict_globals_usage
                  // for more info
-                 (version_compare(PHP_VERSION, '8.1.0', '>=') ? serialize($GLOBALS) : self::safe_serialize($GLOBALS)) .
+                 serialize($GLOBALS) .
                  self::safe_serialize($_SESSION) .
                  self::safe_serialize($_OLD_SESSION);
             $v = $seed = $_SESSION['seed'] = sha1($v, true);
@@ -160,7 +162,7 @@ abstract class Random
                     $crypto = new RC4();
                     break;
                 default:
-                    throw new \RuntimeException(__CLASS__ . ' requires at least one symmetric cipher be loaded');
+                    throw new RuntimeException(__CLASS__ . ' requires at least one symmetric cipher be loaded');
             }
 
             $crypto->setKey(substr($key, 0, $crypto->getKeyLength() >> 3));
@@ -193,10 +195,8 @@ abstract class Random
      * Safely serialize variables
      *
      * If a class has a private __sleep() it'll emit a warning
-     * @return mixed
-     * @param mixed $arr
      */
-    private static function safe_serialize(&$arr)
+    private static function safe_serialize(&$arr): string
     {
         if (is_object($arr)) {
             return '';

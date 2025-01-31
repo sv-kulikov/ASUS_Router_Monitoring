@@ -11,6 +11,8 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
+declare(strict_types=1);
+
 namespace phpseclib3\File\ASN1\Maps;
 
 use phpseclib3\File\ASN1;
@@ -22,11 +24,11 @@ use phpseclib3\File\ASN1;
  */
 abstract class PolicyQualifierInfo
 {
-    const MAP = [
+    public const MAP = [
         'type' => ASN1::TYPE_SEQUENCE,
         'children' => [
             'policyQualifierId' => PolicyQualifierId::MAP,
-            'qualifier' => ['type' => ASN1::TYPE_ANY]
-        ]
+            'qualifier' => ['type' => ASN1::TYPE_ANY],
+        ],
     ];
 }

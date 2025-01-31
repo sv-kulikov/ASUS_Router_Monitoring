@@ -11,6 +11,8 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
+declare(strict_types=1);
+
 namespace phpseclib3\File\ASN1\Maps;
 
 use phpseclib3\File\ASN1;
@@ -23,10 +25,10 @@ use phpseclib3\File\ASN1;
 abstract class OtherPrimeInfos
 {
     // version must be multi if otherPrimeInfos present
-    const MAP = [
+    public const MAP = [
         'type' => ASN1::TYPE_SEQUENCE,
         'min' => 1,
         'max' => -1,
-        'children' => OtherPrimeInfo::MAP
+        'children' => OtherPrimeInfo::MAP,
     ];
 }

@@ -16,10 +16,13 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
+declare(strict_types=1);
+
 namespace phpseclib3\Crypt\DSA\Formats\Keys;
 
 use phpseclib3\Common\Functions\Strings;
 use phpseclib3\Crypt\Common\Formats\Keys\PuTTY as Progenitor;
+use phpseclib3\Exception\InvalidArgumentException;
 use phpseclib3\Math\BigInteger;
 
 /**
@@ -34,7 +37,7 @@ abstract class PuTTY extends Progenitor
      *
      * @var string
      */
-    const PUBLIC_HANDLER = 'phpseclib3\Crypt\DSA\Formats\Keys\OpenSSH';
+    public const PUBLIC_HANDLER = 'phpseclib3\Crypt\DSA\Formats\Keys\OpenSSH';
 
     /**
      * Algorithm Identifier
@@ -46,41 +49,37 @@ abstract class PuTTY extends Progenitor
     /**
      * Break a public or private key down into its constituent components
      *
-     * @param string $key
-     * @param string $password optional
-     * @return array
+     * @param array|string $key
+     * @param string|false $password
+     * @return array|false
      */
-    public static function load($key, $password = '')
+    public static function load($key, $password)
     {
         $components = parent::load($key, $password);
         if (!isset($components['private'])) {
             return $components;
         }
-        extract($components);
+        [
+            'type' => $type,
+            'comment' => $comment,
+            'public' => $public,
+            'private' => $private
+        ] = $components;
         unset($components['public'], $components['private']);
 
-        list($p, $q, $g, $y) = Strings::unpackSSH2('iiii', $public);
-        list($x) = Strings::unpackSSH2('i', $private);
+        [$p, $q, $g, $y] = Strings::unpackSSH2('iiii', $public);
+        [$x] = Strings::unpackSSH2('i', $private);
 
         return compact('p', 'q', 'g', 'y', 'x', 'comment');
     }
 
     /**
      * Convert a private key to the appropriate format.
-     *
-     * @param \phpseclib3\Math\BigInteger $p
-     * @param \phpseclib3\Math\BigInteger $q
-     * @param \phpseclib3\Math\BigInteger $g
-     * @param \phpseclib3\Math\BigInteger $y
-     * @param \phpseclib3\Math\BigInteger $x
-     * @param string $password optional
-     * @param array $options optional
-     * @return string
      */
-    public static function savePrivateKey(BigInteger $p, BigInteger $q, BigInteger $g, BigInteger $y, BigInteger $x, $password = false, array $options = [])
+    public static function savePrivateKey(BigInteger $p, BigInteger $q, BigInteger $g, BigInteger $y, BigInteger $x, ?string $password = null, array $options = []): string
     {
         if ($q->getLength() != 160) {
-            throw new \InvalidArgumentException('SSH only supports keys with an N (length of Group Order q) of 160');
+            throw new InvalidArgumentException('SSH only supports keys with an N (length of Group Order q) of 160');
         }
 
         $public = Strings::packSSH2('iiii', $p, $q, $g, $y);
@@ -91,17 +90,11 @@ abstract class PuTTY extends Progenitor
 
     /**
      * Convert a public key to the appropriate format
-     *
-     * @param \phpseclib3\Math\BigInteger $p
-     * @param \phpseclib3\Math\BigInteger $q
-     * @param \phpseclib3\Math\BigInteger $g
-     * @param \phpseclib3\Math\BigInteger $y
-     * @return string
      */
-    public static function savePublicKey(BigInteger $p, BigInteger $q, BigInteger $g, BigInteger $y)
+    public static function savePublicKey(BigInteger $p, BigInteger $q, BigInteger $g, BigInteger $y): string
     {
         if ($q->getLength() != 160) {
-            throw new \InvalidArgumentException('SSH only supports keys with an N (length of Group Order q) of 160');
+            throw new InvalidArgumentException('SSH only supports keys with an N (length of Group Order q) of 160');
         }
 
         return self::wrapPublicKey(Strings::packSSH2('iiii', $p, $q, $g, $y), 'ssh-dss');

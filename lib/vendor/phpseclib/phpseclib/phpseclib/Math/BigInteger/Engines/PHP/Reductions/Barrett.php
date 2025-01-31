@@ -11,6 +11,8 @@
  * @link      http://pear.php.net/package/Math_BigInteger
  */
 
+declare(strict_types=1);
+
 namespace phpseclib3\Math\BigInteger\Engines\PHP\Reductions;
 
 use phpseclib3\Math\BigInteger\Engines\PHP;
@@ -41,16 +43,13 @@ abstract class Barrett extends Base
      * (x >> 1) + (x >> 1) != x / 2 + x / 2.  If x is even, they're the same, but if x is odd, they're not.  See the in-line
      * comments for details.
      *
-     * @param array $n
-     * @param array $m
      * @param class-string<PHP> $class
-     * @return array
      */
-    protected static function reduce(array $n, array $m, $class)
+    protected static function reduce(array $n, array $m, string $class): array
     {
         static $cache = [
             self::VARIABLE => [],
-            self::DATA => []
+            self::DATA => [],
         ];
 
         $m_length = count($m);
@@ -61,7 +60,7 @@ abstract class Barrett extends Base
             $rhs = new $class();
             $lhs->value = $n;
             $rhs->value = $m;
-            list(, $temp) = $lhs->divide($rhs);
+            [, $temp] = $lhs->divide($rhs);
             return $temp->value;
         }
 
@@ -70,6 +69,13 @@ abstract class Barrett extends Base
             return self::regularBarrett($n, $m, $class);
         }
         // n = 2 * m.length
+        $correctionNeeded = false;
+        if ($m_length & 1) {
+            $correctionNeeded = true;
+            array_unshift($n, 0);
+            array_unshift($m, 0);
+            $m_length++;
+        }
 
         if (($key = array_search($m, $cache[self::VARIABLE])) === false) {
             $key = count($cache[self::VARIABLE]);
@@ -82,16 +88,19 @@ abstract class Barrett extends Base
             $rhs = new $class();
             $rhs->value = $m;
 
-            list($u, $m1) = $lhs->divide($rhs);
+            [$u, $m1] = $lhs->divide($rhs);
             $u = $u->value;
             $m1 = $m1->value;
 
             $cache[self::DATA][] = [
                 'u' => $u, // m.length >> 1 (technically (m.length >> 1) + 1)
-                'm1' => $m1 // m.length
+                'm1' => $m1, // m.length
             ];
         } else {
-            extract($cache[self::DATA][$key]);
+            [
+                'u' => $u,
+                'm1' => $m1
+            ] = $cache[self::DATA][$key];
         }
 
         $cutoff = $m_length + ($m_length >> 1);
@@ -109,6 +118,10 @@ abstract class Barrett extends Base
         $temp = array_slice($n[self::VALUE], $m_length - 1);
         // if even: ((m.length >> 1) + 2) + (m.length >> 1) == m.length + 2
         // if odd:  ((m.length >> 1) + 2) + (m.length >> 1) == (m.length - 1) + 2 == m.length + 1
+        // note that these are upper bounds. let's say m.length is 2. then you'd be multiplying a
+        // 3 digit number by a 1 digit number. if you're doing 999 * 9 (in base 10) the result will
+        // be a 4 digit number. but if you're multiplying 111 * 1 then the result will be a 3 digit
+        // number.
         $temp = $class::multiplyHelper($temp, false, $u, false);
         // if even: (m.length + 2) - ((m.length >> 1) + 1) = m.length - (m.length >> 1) + 1
         // if odd:  (m.length + 1) - ((m.length >> 1) + 1) = m.length - (m.length >> 1)
@@ -116,15 +129,17 @@ abstract class Barrett extends Base
         // if even: (m.length - (m.length >> 1) + 1) + m.length = 2 * m.length - (m.length >> 1) + 1
         // if odd:  (m.length - (m.length >> 1)) + m.length     = 2 * m.length - (m.length >> 1)
         $temp = $class::multiplyHelper($temp, false, $m, false);
-
-        // at this point, if m had an odd number of digits, we'd be subtracting a 2 * m.length - (m.length >> 1) digit
-        // number from a m.length + (m.length >> 1) + 1 digit number.  ie. there'd be an extra digit and the while loop
+        // at this point, if m had an odd number of digits, we'd (probably) be subtracting a 2 * m.length - (m.length >> 1)
+        // digit number from a m.length + (m.length >> 1) + 1 digit number.  ie. there'd be an extra digit and the while loop
         // following this comment would loop a lot (hence our calling _regularBarrett() in that situation).
-
         $result = $class::subtractHelper($n[self::VALUE], false, $temp[self::VALUE], false);
 
         while (self::compareHelper($result[self::VALUE], $result[self::SIGN], $m, false) >= 0) {
             $result = $class::subtractHelper($result[self::VALUE], $result[self::SIGN], $m, false);
+        }
+
+        if ($correctionNeeded) {
+            array_shift($result[self::VALUE]);
         }
 
         return $result[self::VALUE];
@@ -135,17 +150,12 @@ abstract class Barrett extends Base
      *
      * For numbers with more than four digits BigInteger::_barrett() is faster.  The difference between that and this
      * is that this function does not fold the denominator into a smaller form.
-     *
-     * @param array $x
-     * @param array $n
-     * @param string $class
-     * @return array
      */
-    private static function regularBarrett(array $x, array $n, $class)
+    private static function regularBarrett(array $x, array $n, string $class): array
     {
         static $cache = [
             self::VARIABLE => [],
-            self::DATA => []
+            self::DATA => [],
         ];
 
         $n_length = count($n);
@@ -155,7 +165,7 @@ abstract class Barrett extends Base
             $rhs = new $class();
             $lhs->value = $x;
             $rhs->value = $n;
-            list(, $temp) = $lhs->divide($rhs);
+            [, $temp] = $lhs->divide($rhs);
             return $temp->value;
         }
 
@@ -168,7 +178,7 @@ abstract class Barrett extends Base
             $lhs_value[] = 1;
             $rhs = new $class();
             $rhs->value = $n;
-            list($temp, ) = $lhs->divide($rhs); // m.length
+            [$temp, ] = $lhs->divide($rhs); // m.length
             $cache[self::DATA][] = $temp->value;
         }
 
@@ -207,15 +217,8 @@ abstract class Barrett extends Base
      * If you're going to be doing array_slice($product->value, 0, $stop), some cycles can be saved.
      *
      * @see self::regularBarrett()
-     * @param array $x_value
-     * @param bool $x_negative
-     * @param array $y_value
-     * @param bool $y_negative
-     * @param int $stop
-     * @param string $class
-     * @return array
      */
-    private static function multiplyLower(array $x_value, $x_negative, array $y_value, $y_negative, $stop, $class)
+    private static function multiplyLower(array $x_value, bool $x_negative, array $y_value, bool $y_negative, int $stop, string $class): array
     {
         $x_length = count($x_value);
         $y_length = count($y_value);
@@ -223,7 +226,7 @@ abstract class Barrett extends Base
         if (!$x_length || !$y_length) { // a 0 is being multiplied
             return [
                 self::VALUE => [],
-                self::SIGN => false
+                self::SIGN => false,
             ];
         }
 
@@ -275,7 +278,7 @@ abstract class Barrett extends Base
 
         return [
             self::VALUE => self::trim($product_value),
-            self::SIGN => $x_negative != $y_negative
+            self::SIGN => $x_negative != $y_negative,
         ];
     }
 }

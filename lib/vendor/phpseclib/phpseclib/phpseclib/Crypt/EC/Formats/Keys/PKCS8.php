@@ -21,6 +21,8 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
+declare(strict_types=1);
+
 namespace phpseclib3\Crypt\EC\Formats\Keys;
 
 use phpseclib3\Crypt\Common\Formats\Keys\PKCS8 as Progenitor;
@@ -29,10 +31,12 @@ use phpseclib3\Crypt\EC\BaseCurves\Montgomery as MontgomeryCurve;
 use phpseclib3\Crypt\EC\BaseCurves\TwistedEdwards as TwistedEdwardsCurve;
 use phpseclib3\Crypt\EC\Curves\Ed25519;
 use phpseclib3\Crypt\EC\Curves\Ed448;
+use phpseclib3\Exception\RuntimeException;
 use phpseclib3\Exception\UnsupportedCurveException;
 use phpseclib3\File\ASN1;
 use phpseclib3\File\ASN1\Maps;
 use phpseclib3\Math\BigInteger;
+use phpseclib3\Math\Common\FiniteField\Integer;
 
 /**
  * PKCS#8 Formatted EC Key Handler
@@ -48,23 +52,21 @@ abstract class PKCS8 extends Progenitor
      *
      * @var array
      */
-    const OID_NAME = ['id-ecPublicKey', 'id-Ed25519', 'id-Ed448'];
+    public const OID_NAME = ['id-ecPublicKey', 'id-Ed25519', 'id-Ed448'];
 
     /**
      * OID Value
      *
      * @var string
      */
-    const OID_VALUE = ['1.2.840.10045.2.1', '1.3.101.112', '1.3.101.113'];
+    public const OID_VALUE = ['1.2.840.10045.2.1', '1.3.101.112', '1.3.101.113'];
 
     /**
      * Break a public or private key down into its constituent components
      *
-     * @param string $key
-     * @param string $password optional
-     * @return array
+     * @param string|array $key
      */
-    public static function load($key, $password = '')
+    public static function load($key, ?string $password = null): array
     {
         // initialize_static_variables() is defined in both the trait and the parent class
         // when it's defined in two places it's the traits one that's called
@@ -85,11 +87,11 @@ abstract class PKCS8 extends Progenitor
 
         $decoded = ASN1::decodeBER($key[$type . 'Algorithm']['parameters']->element);
         if (!$decoded) {
-            throw new \RuntimeException('Unable to decode BER');
+            throw new RuntimeException('Unable to decode BER');
         }
         $params = ASN1::asn1map($decoded[0], Maps\ECParameters::MAP);
         if (!$params) {
-            throw new \RuntimeException('Unable to decode the parameters using Maps\ECParameters');
+            throw new RuntimeException('Unable to decode the parameters using Maps\ECParameters');
         }
 
         $components = [];
@@ -103,11 +105,11 @@ abstract class PKCS8 extends Progenitor
 
         $decoded = ASN1::decodeBER($key['privateKey']);
         if (!$decoded) {
-            throw new \RuntimeException('Unable to decode BER');
+            throw new RuntimeException('Unable to decode BER');
         }
         $key = ASN1::asn1map($decoded[0], Maps\ECPrivateKey::MAP);
         if (isset($key['parameters']) && $params != $key['parameters']) {
-            throw new \RuntimeException('The PKCS8 parameter field does not match the private key parameter field');
+            throw new RuntimeException('The PKCS8 parameter field does not match the private key parameter field');
         }
 
         $components['dA'] = new BigInteger($key['privateKey'], 256);
@@ -121,20 +123,20 @@ abstract class PKCS8 extends Progenitor
 
     /**
      * Break a public or private EdDSA key down into its constituent components
-     *
-     * @return array
      */
-    private static function loadEdDSA(array $key)
+    private static function loadEdDSA(array $key): array
     {
         $components = [];
 
         if (isset($key['privateKey'])) {
             $components['curve'] = $key['privateKeyAlgorithm']['algorithm'] == 'id-Ed25519' ? new Ed25519() : new Ed448();
-
-            // 0x04 == octet string
-            // 0x20 == length (32 bytes)
-            if (substr($key['privateKey'], 0, 2) != "\x04\x20") {
-                throw new \RuntimeException('The first two bytes of the private key field should be 0x0420');
+            $expected = chr(ASN1::TYPE_OCTET_STRING) . ASN1::encodeLength($components['curve']::SIZE);
+            if (substr($key['privateKey'], 0, 2) != $expected) {
+                throw new RuntimeException(
+                    'The first two bytes of the ' .
+                    $key['privateKeyAlgorithm']['algorithm'] .
+                    ' private key field should be 0x' . bin2hex($expected)
+                );
             }
             $arr = $components['curve']->extractSecret(substr($key['privateKey'], 2));
             $components['dA'] = $arr['dA'];
@@ -159,12 +161,10 @@ abstract class PKCS8 extends Progenitor
     /**
      * Convert an EC public key to the appropriate format
      *
-     * @param \phpseclib3\Crypt\EC\BaseCurves\Base $curve
-     * @param \phpseclib3\Math\Common\FiniteField\Integer[] $publicKey
+     * @param Integer[] $publicKey
      * @param array $options optional
-     * @return string
      */
-    public static function savePublicKey(BaseCurve $curve, array $publicKey, array $options = [])
+    public static function savePublicKey(BaseCurve $curve, array $publicKey, array $options = []): string
     {
         self::initialize_static_variables();
 
@@ -176,7 +176,8 @@ abstract class PKCS8 extends Progenitor
             return self::wrapPublicKey(
                 $curve->encodePoint($publicKey),
                 null,
-                $curve instanceof Ed25519 ? 'id-Ed25519' : 'id-Ed448'
+                $curve instanceof Ed25519 ? 'id-Ed25519' : 'id-Ed448',
+                $options
             );
         }
 
@@ -184,21 +185,15 @@ abstract class PKCS8 extends Progenitor
 
         $key = "\4" . $publicKey[0]->toBytes() . $publicKey[1]->toBytes();
 
-        return self::wrapPublicKey($key, $params, 'id-ecPublicKey');
+        return self::wrapPublicKey($key, $params, 'id-ecPublicKey', $options);
     }
 
     /**
      * Convert a private key to the appropriate format.
      *
-     * @param \phpseclib3\Math\BigInteger $privateKey
-     * @param \phpseclib3\Crypt\EC\BaseCurves\Base $curve
-     * @param \phpseclib3\Math\Common\FiniteField\Integer[] $publicKey
-     * @param string $secret optional
-     * @param string $password optional
-     * @param array $options optional
-     * @return string
+     * @param Integer[] $publicKey
      */
-    public static function savePrivateKey(BigInteger $privateKey, BaseCurve $curve, array $publicKey, $secret = null, $password = '', array $options = [])
+    public static function savePrivateKey(BigInteger $privateKey, BaseCurve $curve, array $publicKey, ?string $secret = null, ?string $password = null, array $options = []): string
     {
         self::initialize_static_variables();
 
@@ -208,7 +203,7 @@ abstract class PKCS8 extends Progenitor
 
         if ($curve instanceof TwistedEdwardsCurve) {
             return self::wrapPrivateKey(
-                "\x04\x20" . $secret,
+                chr(ASN1::TYPE_OCTET_STRING) . ASN1::encodeLength($curve::SIZE) . $secret,
                 [],
                 null,
                 $password,
@@ -224,7 +219,7 @@ abstract class PKCS8 extends Progenitor
             'version' => 'ecPrivkeyVer1',
             'privateKey' => $privateKey->toBytes(),
             //'parameters' => $params,
-            'publicKey' => "\0" . $publicKey
+            'publicKey' => "\0" . $publicKey,
         ];
 
         $key = ASN1::encodeDER($key, Maps\ECPrivateKey::MAP);

@@ -11,6 +11,8 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
+declare(strict_types=1);
+
 namespace phpseclib3\File\ASN1\Maps;
 
 use phpseclib3\File\ASN1;
@@ -22,7 +24,7 @@ use phpseclib3\File\ASN1;
  */
 abstract class CountryName
 {
-    const MAP = [
+    public const MAP = [
         'type' => ASN1::TYPE_CHOICE,
         // if class isn't present it's assumed to be \phpseclib3\File\ASN1::CLASS_UNIVERSAL or
         // (if constant is present) \phpseclib3\File\ASN1::CLASS_CONTEXT_SPECIFIC
@@ -30,7 +32,7 @@ abstract class CountryName
         'cast' => 1,
         'children' => [
             'x121-dcc-code' => ['type' => ASN1::TYPE_NUMERIC_STRING],
-            'iso-3166-alpha2-code' => ['type' => ASN1::TYPE_PRINTABLE_STRING]
-        ]
+            'iso-3166-alpha2-code' => ['type' => ASN1::TYPE_PRINTABLE_STRING],
+        ],
     ];
 }

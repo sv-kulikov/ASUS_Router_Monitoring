@@ -11,6 +11,8 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
+declare(strict_types=1);
+
 namespace phpseclib3\File\ASN1\Maps;
 
 use phpseclib3\File\ASN1;
@@ -22,7 +24,7 @@ use phpseclib3\File\ASN1;
  */
 abstract class ReasonFlags
 {
-    const MAP = [
+    public const MAP = [
         'type' => ASN1::TYPE_BIT_STRING,
         'mapping' => [
             'unused',
@@ -33,7 +35,7 @@ abstract class ReasonFlags
             'cessationOfOperation',
             'certificateHold',
             'privilegeWithdrawn',
-            'aACompromise'
-        ]
+            'aACompromise',
+        ],
     ];
 }

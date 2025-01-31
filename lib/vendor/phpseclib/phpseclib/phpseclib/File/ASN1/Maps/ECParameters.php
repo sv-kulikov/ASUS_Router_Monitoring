@@ -13,6 +13,8 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
+declare(strict_types=1);
+
 namespace phpseclib3\File\ASN1\Maps;
 
 use phpseclib3\File\ASN1;
@@ -34,12 +36,12 @@ use phpseclib3\File\ASN1;
  */
 abstract class ECParameters
 {
-    const MAP = [
+    public const MAP = [
         'type' => ASN1::TYPE_CHOICE,
         'children' => [
             'namedCurve' => ['type' => ASN1::TYPE_OBJECT_IDENTIFIER],
             'implicitCurve' => ['type' => ASN1::TYPE_NULL],
-            'specifiedCurve' => SpecifiedECDomain::MAP
-        ]
+            'specifiedCurve' => SpecifiedECDomain::MAP,
+        ],
     ];
 }
