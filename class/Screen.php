@@ -220,9 +220,9 @@ class Screen
                     $speedsDataAsText .= $this->getBar('R', $providerData['speedRX'][$i], $providers['TOTAL']['globalMaxSpeed'], $this->oneProviderWidth, Screen::SPEED_LENGTH_WITH_SPACE, 2, Color::LIGHT_MAGENTA);
                 } else {
                     if ($providerData['isOffline']) {
-                        $speedsDataAsText .= $this->getBar('R', $providerData['speedRX'][$i], $providers['TOTAL']['globalMaxSpeed'], $this->oneProviderWidth, Screen::SPEED_LENGTH_WITH_SPACE, 2, Color::LIGHT_MAGENTA, Color::LIGHT_RED);
+                        $speedsDataAsText .= $this->getBar('R', $providerData['speedRX'][$i] ?? 0, $providers['TOTAL']['globalMaxSpeed'] ?? 0, $this->oneProviderWidth, Screen::SPEED_LENGTH_WITH_SPACE, 2, Color::LIGHT_MAGENTA, Color::LIGHT_RED);
                     } else {
-                        $speedsDataAsText .= $this->getBar('R', $providerData['speedRX'][$i], $providers['TOTAL']['globalMaxSpeed'], $this->oneProviderWidth, Screen::SPEED_LENGTH_WITH_SPACE, 2, Color::LIGHT_MAGENTA, Color::YELLOW);
+                        $speedsDataAsText .= $this->getBar('R', $providerData['speedRX'][$i] ?? 0, $providers['TOTAL']['globalMaxSpeed'] ?? 0, $this->oneProviderWidth, Screen::SPEED_LENGTH_WITH_SPACE, 2, Color::LIGHT_MAGENTA, Color::YELLOW);
                     }
                 }
             }
