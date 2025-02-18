@@ -55,6 +55,7 @@ class Logger
         ];
 
         foreach ($providers as $providerData) {
+            $data["{$providerData['providerName']}_IP"] = $providerData['ip'];
             $data["{$providerData['providerName']}_currentRX"] = (int)end($providerData['speedRX']);
             $data["{$providerData['providerName']}_currentTX"] = (int)end($providerData['speedTX']);
             $data["{$providerData['providerName']}_totalRX"] = (int)$providerData['RXbytes'];
