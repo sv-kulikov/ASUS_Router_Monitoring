@@ -93,8 +93,8 @@ class Screen
     {
         echo "\033[H\033[J";
         // \033 (or \e in some environments) represents the escape character (ESC).
-        // [H moves the cursor to the "home" position (top-left of the terminal).
-        // [J clears the screen from the cursor position to the end of the display.
+        // [H moves the cursor to the "home" position (top-left of the terminal).]
+        // [J clears the screen from the cursor position to the end of the display.]
     }
 
     private function getBar($directionLetter, $speedValue, $globalMaxSpeed, $oneProviderWidth, $speedLengthWithSpace, $paddingSpaces, $color, $barColor = Color::DARK_GRAY): string
@@ -469,7 +469,8 @@ class Screen
 
             $portsProcessed = 0;
             foreach ($hardwareData['hooksResults']['get_wan_lan_status()']['get_wan_lan_status']['portSpeed'] as $portName => $portSpeed) {
-                if (!str_contains($portName, 'LAN')) {
+                if ((!str_contains($portName, 'LAN')) ||
+                    (($portName == 'LAN 9') && (($hardwareData['hooksResults']['get_wan_lan_status()']['get_wan_lan_status']['portCount']['lanCount'] ?? 0) > 8))) {
                     $devicesDataAsText .= $this->portStateToColoredLabel($portSpeed) . ' ';
                     $portsProcessed++;
                     $logData[$hardwareData['deviceName'] . '_WAN_' . $portsProcessed] = $this->portStateToLabel($portSpeed);
@@ -477,7 +478,7 @@ class Screen
             }
 
             if ($portsProcessed < 3) {
-                $devicesDataAsText .= str_repeat(' ', 5);
+                $devicesDataAsText .= str_repeat('---- ', 3 - $portsProcessed);
             }
 
             $devicesDataAsText .= '   ';
@@ -485,6 +486,10 @@ class Screen
             $portsProcessed = 0;
             foreach ($hardwareData['hooksResults']['get_wan_lan_status()']['get_wan_lan_status']['portSpeed'] as $portName => $portSpeed) {
                 if (str_contains($portName, 'LAN')) {
+                    if (($portName == 'LAN 9') && (($hardwareData['hooksResults']['get_wan_lan_status()']['get_wan_lan_status']['portCount']['lanCount'] ?? 0) > 8)) {
+                        continue;
+                    }
+
                     $devicesDataAsText .= $this->portStateToColoredLabel($portSpeed) . ' ';
                     $portsProcessed++;
                     $logData[$hardwareData['deviceName'] . '_LAN_' . $portsProcessed] = $this->portStateToLabel($portSpeed);

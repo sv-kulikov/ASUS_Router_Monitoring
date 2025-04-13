@@ -413,6 +413,9 @@ class Router
             $maxTemp = 0;
             for ($i = 0; $i <= 11; $i++) {
                 $sshResponse = (float)$hardwareData['ssh']->exec('cat /sys/class/thermal/thermal_zone' . $i . '/temp');
+                if ($sshResponse > 1000) {
+                    $sshResponse = round($sshResponse / 1000, 1);
+                }
                 if ($sshResponse > $maxTemp) {
                     $maxTemp = $sshResponse;
                 }
