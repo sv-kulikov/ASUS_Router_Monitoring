@@ -64,6 +64,23 @@ class Router
                     if ($this->config['settings']['showDetailedDevicesData'] == 'Y') {
                         $this->hooksRepeater = new Hooks($this->config['repeater']['ip'], $this->config['repeater']['login'], $this->config['repeater']['password']);
                     }
+                    if ($this->config['repeater']['addDefaultRouteOnUtilityStart'] !== '') {
+                        echo "Checking, if default route is set in repeater... ";
+                        $sshResponse = $this->sshClientRepeater->exec('ip route | grep default');
+                        if (str_contains($sshResponse, 'default')) {
+                            echo "It is set. No actions required.\n";
+                        } else {
+                            echo "It is not set. Adding [" . $this->config['repeater']['addDefaultRouteOnUtilityStart'] . "]... ";
+                            $this->sshClientRepeater->exec($this->config['repeater']['addDefaultRouteOnUtilityStart']);
+                            echo "Re-checking... ";
+                            $sshResponse = $this->sshClientRepeater->exec('ip route | grep default');
+                            if (str_contains($sshResponse, 'default')) {
+                                echo "DONE!\n";
+                            } else {
+                                echo "FAILED!\n";
+                            }
+                        }
+                    }
                 }
                 break;
             } catch (Exception) {
