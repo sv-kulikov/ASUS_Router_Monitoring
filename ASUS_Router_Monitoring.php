@@ -29,8 +29,11 @@ if ($config->getConfigData()['providers']['provider'][0]['providerName'] === 'Pr
 $demoMode = isset($argv[1]) && $argv[1] === 'demo';
 $config->updateNestedParameter('settings', 'demo', $demoMode);
 
-// Initialize logger and screen
+// Initialize logger and exception handler
 $logger = new Logger($config);
+set_exception_handler([$logger, 'logUncaughtException']);
+
+// Initialize screen
 $screen = new Screen($config, $logger);
 $screen->detectScreenParameters();
 $screen->clearScreen();
@@ -85,7 +88,7 @@ if (!$keyboardEvents) {
             while (true) {
                 $worker->globalStep($router, $config, $screen);
             }
-        } catch (Exception $e) {
+        } catch (Exception) {
             $utilityStart = true;
             $worker->refreshAfterException($screen, $config);
         }
@@ -125,9 +128,9 @@ if (!$keyboardEvents) {
                     $worker->globalInit($router, $config, $screen, $utilityStart);
                 }
 
-                $worker->globalStep($router, $config, $screen, $utilityStart);
+                $worker->globalStep($router, $config, $screen);
             }
-        } catch (Exception $e) {
+        } catch (Exception) {
             $worker->refreshAfterException($screen, $config);
         }
     }

@@ -182,17 +182,22 @@ class Screen
                 $providerNameWithData .= $this->getColoredText(' {' . $providerData['ipChanges'] . '}', $ipChangesColor);
             }
 
-            if ($providerData['providerName'] === 'TOTAL' && $this->config['settings']['showDetailedDevicesData'] === 'N') {
-                $providerNameWithData = '';
-                foreach ($hardware as $hardwareItem) {
-                    $tempColor = $hardwareItem['cpu_temp_max'] >= 60 ? Color::LIGHT_YELLOW : Color::LIGHT_GREEN;
-                    $loadColor = $hardwareItem['loadAverageNow'] >= 60 ? Color::LIGHT_YELLOW : Color::LIGHT_GREEN;
-                    $providerNameWithData .= $this->getColoredText($hardwareItem['cpu_temp'] . '°C ', $tempColor);
-                    $providerNameWithData .= $this->getColoredText($hardwareItem['loadAverageNow'] . '% ', $loadColor);
-                    $providerNameWithData .= $this->getColoredText($hardwareItem['uptimePretty'], Color::WHITE);
-                    $providerNameWithData .= $this->getColoredText(', ', Color::LIGHT_GRAY);
+            if ($providerData['providerName'] === 'TOTAL') {
+                if ($this->config['settings']['showDetailedDevicesData'] === 'N') {
+                    $providerNameWithData = '';
+                    foreach ($hardware as $hardwareItem) {
+                        $tempColor = $hardwareItem['cpu_temp_max'] >= 60 ? Color::LIGHT_YELLOW : Color::LIGHT_GREEN;
+                        $loadColor = $hardwareItem['loadAverageNow'] >= 60 ? Color::LIGHT_YELLOW : Color::LIGHT_GREEN;
+                        $providerNameWithData .= $this->getColoredText($hardwareItem['cpu_temp'] . '°C ', $tempColor);
+                        $providerNameWithData .= $this->getColoredText($hardwareItem['loadAverageNow'] . '% ', $loadColor);
+                        $providerNameWithData .= $this->getColoredText($hardwareItem['uptimePretty'], Color::WHITE);
+                        $providerNameWithData .= $this->getColoredText(', ', Color::LIGHT_GRAY);
+                    }
+                    $providerNameWithData = rtrim($providerNameWithData, ', ');
                 }
-                $providerNameWithData = rtrim($providerNameWithData, ', ');
+                if ($this->logger->getLastExceptionDateTimeAsString() !== '') {
+                    $providerNameWithData .= $this->getColoredText(' (Exc: ' . $this->logger->getLastExceptionDateTimeAsString() . ')', Color::LIGHT_YELLOW);
+                }
             }
 
             $providerNameWithDataNoANSI = preg_replace('/\e\[[0-9;]*m/', '', $providerNameWithData);
@@ -561,7 +566,7 @@ class Screen
 
     public function drawScreen(array $providers, array $hardware): void
     {
-        // Move cursor to the upper left corner
+        // Move the cursor to the upper-left corner
         echo chr(27) . chr(91) . 'H';
 
         // Print providers names
@@ -620,7 +625,7 @@ class Screen
         };
     }
 
-    // For now ASUS routers most times fail with accurate clients description.
+    // For now, ASUS routers most times fail with accurate clients description.
     // This method is for the future. Hopefully, someday with new firmware, this router's
     // feature will work.
     /*

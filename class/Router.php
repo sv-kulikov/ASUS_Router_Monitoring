@@ -189,7 +189,7 @@ class Router
                     $providerData['TXbytesAccumulated'] = $providerData['TXbytesAccumulated'] ?? 0;
                     $providerData['isOffline'] = false;
                     $providerData['ip'] = '';
-                    $providerData['ipChanges'] = -1; // Initially the IP is empty string. So, we need to set it to -1 to avoid false positive IP changes detection.
+                    $providerData['ipChanges'] = -1; // Initially, the IP is empty string. So, we need to set it to -1 to avoid false positive IP changes detection.
                     $providerData['idleRXcount'] = 0;
                     $providerData['idleTXcount'] = 0;
                     $this->providersData[$providerKey] = $providerData;
@@ -278,7 +278,7 @@ class Router
     {
         $timeDelta = $this->currentRefreshTime - $this->lastRefreshTime;
 
-        // 1st step of stats preparation (inits)
+        // 1st step of statistics preparation (inits)
         foreach ($this->providersData as $providerName => $providerData) {
             $speedRX = ($providerData['RXbytes'] - $providerData['RXbytesLast']) / $timeDelta;
             $speedTX = ($providerData['TXbytes'] - $providerData['TXbytesLast']) / $timeDelta;
@@ -302,7 +302,7 @@ class Router
 
         }
 
-        // 2nd step of stats preparation (primary calculations)
+        // 2nd step of statistics preparation (primary calculations)
         foreach ($this->providersData as $providerName => $providerData) {
             for ($i = 0; $i < count($this->providersData[$providerName]['speedRX']) - $this->stepsToShow; $i++) {
                 array_shift($this->providersData[$providerName]['speedRX']);

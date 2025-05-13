@@ -3,14 +3,17 @@
 namespace Sv\Network\VmsRtbw;
 
 use RuntimeException;
+use Throwable;
 
 /**
  * Class Logger provides methods to log data to files.
+ * It also handles uncaught exceptions and logs them to a file.
  */
 class Logger
 {
     private array $config;
     private string $logFullPath;
+    private string $lastExceptionDateTimeAsString = '';
 
     /**
      * Logger constructor.
@@ -97,4 +100,48 @@ class Logger
             echo "Logging error: " . $e->getMessage() . "\n";
         }
     }
+
+
+    /**
+     * Default exception handler that logs detailed exception data to a daily file.
+     *
+     * @param Throwable $exception The uncaught exception.
+     *
+     * @return void
+     */
+    public function logUncaughtException(Throwable $exception): void
+    {
+        $this->lastExceptionDateTimeAsString = date('Y-m-d H:i:s');
+
+        $fileName = $this->logFullPath . DIRECTORY_SEPARATOR . 'exception_' . date('Y_m_d') . '.txt';
+
+        $logData = [
+            'Timestamp' => date('Y-m-d H:i:s'),
+            'Exception Class' => get_class($exception),
+            'Message' => $exception->getMessage(),
+            'Code' => $exception->getCode(),
+            'File' => $exception->getFile(),
+            'Line' => $exception->getLine(),
+            'Stack Trace' => $exception->getTraceAsString(),
+            'Previous' => $exception->getPrevious() ? (string)$exception->getPrevious() : 'None'
+        ];
+
+        $logContent = "=== Uncaught Exception ===\n";
+        foreach ($logData as $key => $value) {
+            $logContent .= "$key:\n$value\n\n";
+        }
+
+        file_put_contents($fileName, $logContent, FILE_APPEND);
+    }
+
+    /**
+     * Returns the last exception date and time as a formatted string.
+     *
+     * @return string The last exception date and time.
+     */
+    public function getLastExceptionDateTimeAsString(): string
+    {
+        return $this->lastExceptionDateTimeAsString;
+    }
+
 }

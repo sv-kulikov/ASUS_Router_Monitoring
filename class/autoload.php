@@ -1,9 +1,9 @@
 <?php
 
 /**
- * This function dynamically loads classes based on their fully-qualified names.
+ * This function dynamically loads classes based on their fully qualified names.
  *
- * @param string $class The fully-qualified class name.
+ * @param string $class The fully qualified class name.
  * @return void
  */
 spl_autoload_register(function ($class) {
