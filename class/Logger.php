@@ -22,6 +22,12 @@ class Logger
     public function __construct(Config $config)
     {
         $this->config = $config->getConfigData();
+        if ($this->config['settings']['logData'] === 'Y') {
+            $this->logFullPath = realpath(__DIR__ . '/../' . $this->config['settings']['logPath']);
+            if (!($this->logFullPath && is_dir($this->logFullPath) && is_writable($this->logFullPath))) {
+                $this->config['settings']['logData'] = 'N';
+            }
+        }
     }
 
     /**

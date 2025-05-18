@@ -69,7 +69,7 @@ if ($detailedDevicesData) {
     echo "Detailed devices data is disabled. Consider enabling it unless compatibility issues arise.\n";
 }
 
-// Check and adjust logger settings
+// Check and show settings for logging
 $logger->checkSettings();
 
 // Display screen parameters and refresh rate
