@@ -31,7 +31,7 @@ $config->updateNestedParameter('settings', 'demo', $demoMode);
 
 // Initialize logger and exception handler
 $logger = new Logger($config);
-set_exception_handler([$logger, 'logUncaughtException']);
+set_exception_handler([$logger, 'logException']);
 
 // Initialize screen
 $screen = new Screen($config, $logger);
@@ -88,9 +88,10 @@ if (!$keyboardEvents) {
             while (true) {
                 $worker->globalStep($router, $config, $screen);
             }
-        } catch (Exception) {
+        } catch (Exception $e) {
             $utilityStart = true;
             $worker->refreshAfterException($screen, $config);
+            $logger->logException($e);
         }
     }
 } else {
@@ -130,8 +131,9 @@ if (!$keyboardEvents) {
 
                 $worker->globalStep($router, $config, $screen);
             }
-        } catch (Exception) {
+        } catch (Exception $e) {
             $worker->refreshAfterException($screen, $config);
+            $logger->logException($e);
         }
     }
 

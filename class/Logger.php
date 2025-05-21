@@ -7,7 +7,7 @@ use Throwable;
 
 /**
  * Class Logger provides methods to log data to files.
- * It also handles uncaught exceptions and logs them to a file.
+ * It also handles exceptions and logs them to a file.
  */
 class Logger
 {
@@ -103,7 +103,7 @@ class Logger
             fputcsv($file, array_values($data), ',', '"', '\\', PHP_EOL);
             fclose($file);
         } catch (RuntimeException $e) {
-            echo "Logging error: " . $e->getMessage() . "\n";
+            $this->logException($e);
         }
     }
 
@@ -111,11 +111,11 @@ class Logger
     /**
      * Default exception handler that logs detailed exception data to a daily file.
      *
-     * @param Throwable $exception The uncaught exception.
+     * @param Throwable $exception The exception.
      *
      * @return void
      */
-    public function logUncaughtException(Throwable $exception): void
+    public function logException(Throwable $exception): void
     {
         $this->lastExceptionDateTimeAsString = date('Y-m-d H:i:s');
 
@@ -132,7 +132,7 @@ class Logger
             'Previous' => $exception->getPrevious() ? (string)$exception->getPrevious() : 'None'
         ];
 
-        $logContent = "=== Uncaught Exception ===\n";
+        $logContent = "=== Exception ===\n";
         foreach ($logData as $key => $value) {
             $logContent .= "$key:\n$value\n\n";
         }

@@ -52,8 +52,9 @@ class Config
             $this->configData = $array;
         } catch (Exception $e) {
             // Handle errors and set default empty configuration
-            echo "Error: " . $e->getMessage() . "\n";
             $this->configData = [];
+            $localLogger = new Logger();
+            $localLogger->logException($e);
         }
     }
 

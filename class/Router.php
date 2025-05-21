@@ -83,7 +83,7 @@ class Router
                     }
                 }
                 break;
-            } catch (Exception) {
+            } catch (Exception $e) {
                 echo "Something is wrong with the connection to either router or repeater. Waiting for 5 seconds to try again. Attempts left = " . ($attemptsLeft--) . ".\n";
                 sleep(5);
                 $this->configObject->updateParameter('globalStartDateTime', new DateTime());
