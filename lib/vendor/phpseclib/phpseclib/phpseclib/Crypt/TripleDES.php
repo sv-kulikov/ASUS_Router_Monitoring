@@ -3,9 +3,7 @@
 /**
  * Pure-PHP implementation of Triple DES.
  *
- * Uses OpenSSL, if available/possible, and an internal implementation, otherwise.
- *
- * Operates in the EDE3 mode (encrypt-decrypt-encrypt).
+ * Uses mcrypt, if available, and an internal implementation, otherwise.  Operates in the EDE3 mode (encrypt-decrypt-encrypt).
  *
  * PHP version 5
  *
@@ -34,12 +32,7 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
-declare(strict_types=1);
-
 namespace phpseclib3\Crypt;
-
-use phpseclib3\Exception\BadModeException;
-use phpseclib3\Exception\LengthException;
 
 /**
  * Pure-PHP implementation of Triple DES.
@@ -53,14 +46,14 @@ class TripleDES extends DES
      *
      * Inner chaining is used by SSH-1 and is generally considered to be less secure then outer chaining (self::MODE_CBC3).
      */
-    public const MODE_3CBC = -2;
+    const MODE_3CBC = -2;
 
     /**
      * Encrypt / decrypt using outer chaining
      *
      * Outer chaining is used by SSH-2 and when the mode is set to \phpseclib3\Crypt\Common\BlockCipher::MODE_CBC.
      */
-    public const MODE_CBC3 = self::MODE_CBC;
+    const MODE_CBC3 = self::MODE_CBC;
 
     /**
      * Key Length (in bytes)
@@ -71,12 +64,10 @@ class TripleDES extends DES
     protected $key_length = 24;
 
     /**
-<<<<<<< HEAD
-=======
      * The mcrypt specific name of the cipher
      *
-     * @see DES::cipher_name_mcrypt
-     * @see Common\SymmetricKey::cipher_name_mcrypt
+     * @see \phpseclib3\Crypt\DES::cipher_name_mcrypt
+     * @see \phpseclib3\Crypt\Common\SymmetricKey::cipher_name_mcrypt
      * @var string
      */
     protected $cipher_name_mcrypt = 'tripledes';
@@ -84,17 +75,16 @@ class TripleDES extends DES
     /**
      * Optimizing value while CFB-encrypting
      *
-     * @see Common\SymmetricKey::cfb_init_len
+     * @see \phpseclib3\Crypt\Common\SymmetricKey::cfb_init_len
      * @var int
      */
     protected $cfb_init_len = 750;
 
     /**
->>>>>>> 3.0
      * max possible size of $key
      *
      * @see self::setKey()
-     * @see DES::setKey()
+     * @see \phpseclib3\Crypt\DES::setKey()
      * @var string
      */
     protected $key_length_max = 24;
@@ -118,6 +108,8 @@ class TripleDES extends DES
     /**
      * Default Constructor.
      *
+     * Determines whether or not the mcrypt or OpenSSL extensions should be used.
+     *
      * $mode could be:
      *
      * - ecb
@@ -134,16 +126,11 @@ class TripleDES extends DES
      *
      * - cbc3 (same as cbc)
      *
-<<<<<<< HEAD
-     * @see \phpseclib3\Crypt\Common\SymmetricKey::__construct()
      * @see \phpseclib3\Crypt\DES::__construct()
-=======
-     * @see Crypt\DES::__construct()
-     * @see Common\SymmetricKey::__construct()
+     * @see \phpseclib3\Crypt\Common\SymmetricKey::__construct()
      * @param string $mode
->>>>>>> 3.0
      */
-    public function __construct(string $mode)
+    public function __construct($mode)
     {
         switch (strtolower($mode)) {
             // In case of self::MODE_3CBC, we init as CRYPT_DES_MODE_CBC
@@ -182,15 +169,11 @@ class TripleDES extends DES
      *
      * This is mainly just a wrapper to set things up for \phpseclib3\Crypt\Common\SymmetricKey::isValidEngine()
      *
-<<<<<<< HEAD
      * @see \phpseclib3\Crypt\Common\SymmetricKey::__construct()
-=======
-     * @see Common\SymmetricKey::__construct()
      * @param int $engine
      * @return bool
->>>>>>> 3.0
      */
-    protected function isValidEngineHelper(int $engine): bool
+    protected function isValidEngineHelper($engine)
     {
         if ($engine == self::ENGINE_OPENSSL) {
             $this->cipher_name_openssl_ecb = 'des-ede3';
@@ -206,14 +189,10 @@ class TripleDES extends DES
      *
      * SetIV is not required when \phpseclib3\Crypt\Common\SymmetricKey::MODE_ECB is being used.
      *
-<<<<<<< HEAD
      * @see \phpseclib3\Crypt\Common\SymmetricKey::setIV()
-=======
-     * @see Common\SymmetricKey::setIV()
      * @param string $iv
->>>>>>> 3.0
      */
-    public function setIV(string $iv): void
+    public function setIV($iv)
     {
         parent::setIV($iv);
         if ($this->mode_3cbc) {
@@ -230,23 +209,18 @@ class TripleDES extends DES
      *
      * If you want to use a 64-bit key use DES.php
      *
-<<<<<<< HEAD
-     * @throws LengthException if the key length is invalid
      * @see \phpseclib3\Crypt\Common\SymmetricKey:setKeyLength()
-=======
-     * @see Common\SymmetricKey:setKeyLength()
      * @throws \LengthException if the key length is invalid
      * @param int $length
->>>>>>> 3.0
      */
-    public function setKeyLength(int $length): void
+    public function setKeyLength($length)
     {
         switch ($length) {
             case 128:
             case 192:
                 break;
             default:
-                throw new LengthException('Key size of ' . $length . ' bits is not supported by this algorithm. Only keys of sizes 128 or 192 bits are supported');
+                throw new \LengthException('Key size of ' . $length . ' bits is not supported by this algorithm. Only keys of sizes 128 or 192 bits are supported');
         }
 
         parent::setKeyLength($length);
@@ -259,21 +233,15 @@ class TripleDES extends DES
      *
      * DES also requires that every eighth bit be a parity bit, however, we'll ignore that.
      *
-<<<<<<< HEAD
-     * @throws LengthException if the key length is invalid
      * @see \phpseclib3\Crypt\DES::setKey()
      * @see \phpseclib3\Crypt\Common\SymmetricKey::setKey()
-=======
-     * @see DES::setKey()
-     * @see Common\SymmetricKey::setKey()
      * @throws \LengthException if the key length is invalid
      * @param string $key
->>>>>>> 3.0
      */
-    public function setKey(string $key): void
+    public function setKey($key)
     {
         if ($this->explicit_key_length !== false && strlen($key) != $this->explicit_key_length) {
-            throw new LengthException('Key length has already been set to ' . $this->explicit_key_length . ' bytes and this key is ' . strlen($key) . ' bytes');
+            throw new \LengthException('Key length has already been set to ' . $this->explicit_key_length . ' bytes and this key is ' . strlen($key) . ' bytes');
         }
 
         switch (strlen($key)) {
@@ -283,7 +251,7 @@ class TripleDES extends DES
             case 24:
                 break;
             default:
-                throw new LengthException('Key of size ' . strlen($key) . ' not supported by this algorithm. Only keys of sizes 16 or 24 are supported');
+                throw new \LengthException('Key of size ' . strlen($key) . ' not supported by this algorithm. Only keys of sizes 16 or 24 are supported');
         }
 
         // copied from self::setKey()
@@ -302,15 +270,11 @@ class TripleDES extends DES
     /**
      * Encrypts a message.
      *
-<<<<<<< HEAD
-=======
-     * @see Common\SymmetricKey::encrypt()
-     * @param string $plaintext
->>>>>>> 3.0
-     * @return string $cipertext
      * @see \phpseclib3\Crypt\Common\SymmetricKey::encrypt()
+     * @param string $plaintext
+     * @return string $cipertext
      */
-    public function encrypt(string $plaintext): string
+    public function encrypt($plaintext)
     {
         // parent::en/decrypt() is able to do all the work for all modes and keylengths,
         // except for: self::MODE_3CBC (inner chaining CBC) with a key > 64bits
@@ -332,10 +296,11 @@ class TripleDES extends DES
     /**
      * Decrypts a message.
      *
-     * @see Common\SymmetricKey::decrypt()
+     * @see \phpseclib3\Crypt\Common\SymmetricKey::decrypt()
      * @param string $ciphertext
+     * @return string $plaintext
      */
-    public function decrypt(string $ciphertext): string
+    public function decrypt($ciphertext)
     {
         if ($this->mode_3cbc && strlen($this->key) > 8) {
             return $this->unpad(
@@ -386,10 +351,10 @@ class TripleDES extends DES
      * continuous buffers not be used.  They do offer better security and are, in fact, sometimes required (SSH uses them),
      * however, they are also less intuitive and more likely to cause you problems.
      *
-     * @see Common\SymmetricKey::enableContinuousBuffer()
+     * @see \phpseclib3\Crypt\Common\SymmetricKey::enableContinuousBuffer()
      * @see self::disableContinuousBuffer()
      */
-    public function enableContinuousBuffer(): void
+    public function enableContinuousBuffer()
     {
         parent::enableContinuousBuffer();
         if ($this->mode_3cbc) {
@@ -404,10 +369,10 @@ class TripleDES extends DES
      *
      * The default behavior.
      *
-     * @see Common\SymmetricKey::disableContinuousBuffer()
+     * @see \phpseclib3\Crypt\Common\SymmetricKey::disableContinuousBuffer()
      * @see self::enableContinuousBuffer()
      */
-    public function disableContinuousBuffer(): void
+    public function disableContinuousBuffer()
     {
         parent::disableContinuousBuffer();
         if ($this->mode_3cbc) {
@@ -420,10 +385,10 @@ class TripleDES extends DES
     /**
      * Creates the key schedule
      *
-     * @see DES::setupKey()
-     * @see Common\SymmetricKey::setupKey()
+     * @see \phpseclib3\Crypt\DES::setupKey()
+     * @see \phpseclib3\Crypt\Common\SymmetricKey::setupKey()
      */
-    protected function setupKey(): void
+    protected function setupKey()
     {
         switch (true) {
             // if $key <= 64bits we configure our internal pure-php cipher engine
@@ -454,10 +419,11 @@ class TripleDES extends DES
     /**
      * Sets the internal crypt engine
      *
-     * @see Common\SymmetricKey::setPreferredEngine()
-     * @see Common\SymmetricKey::__construct()
+     * @see \phpseclib3\Crypt\Common\SymmetricKey::__construct()
+     * @see \phpseclib3\Crypt\Common\SymmetricKey::setPreferredEngine()
+     * @param int $engine
      */
-    public function setPreferredEngine(string $engine): void
+    public function setPreferredEngine($engine)
     {
         if ($this->mode_3cbc) {
             $this->des[0]->setPreferredEngine($engine);

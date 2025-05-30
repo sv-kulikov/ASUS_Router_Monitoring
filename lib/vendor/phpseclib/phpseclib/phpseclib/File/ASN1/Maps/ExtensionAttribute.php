@@ -11,8 +11,6 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
-declare(strict_types=1);
-
 namespace phpseclib3\File\ASN1\Maps;
 
 use phpseclib3\File\ASN1;
@@ -24,21 +22,21 @@ use phpseclib3\File\ASN1;
  */
 abstract class ExtensionAttribute
 {
-    public const MAP = [
+    const MAP = [
         'type' => ASN1::TYPE_SEQUENCE,
         'children' => [
             'extension-attribute-type' => [
                 'type' => ASN1::TYPE_PRINTABLE_STRING,
                 'constant' => 0,
                 'optional' => true,
-                'implicit' => true,
+                'implicit' => true
             ],
             'extension-attribute-value' => [
                 'type' => ASN1::TYPE_ANY,
                 'constant' => 1,
                 'optional' => true,
-                'explicit' => true,
-            ],
-        ],
+                'explicit' => true
+            ]
+        ]
     ];
 }

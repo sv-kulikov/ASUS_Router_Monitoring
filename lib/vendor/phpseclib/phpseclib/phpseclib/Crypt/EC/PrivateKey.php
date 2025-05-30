@@ -9,8 +9,6 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
-declare(strict_types=1);
-
 namespace phpseclib3\Crypt\EC;
 
 use phpseclib3\Common\Functions\Strings;
@@ -23,7 +21,6 @@ use phpseclib3\Crypt\EC\Curves\Ed25519;
 use phpseclib3\Crypt\EC\Formats\Keys\PKCS1;
 use phpseclib3\Crypt\EC\Formats\Signature\ASN1 as ASN1Signature;
 use phpseclib3\Crypt\Hash;
-use phpseclib3\Exception\RuntimeException;
 use phpseclib3\Exception\UnsupportedOperationException;
 use phpseclib3\Math\BigInteger;
 
@@ -56,8 +53,11 @@ final class PrivateKey extends EC implements Common\PrivateKey
      * Multiplies an encoded point by the private key
      *
      * Used by ECDH
+     *
+     * @param string $coordinates
+     * @return string
      */
-    public function multiply(string $coordinates): string
+    public function multiply($coordinates)
     {
         if ($this->curve instanceof MontgomeryCurve) {
             if ($this->curve instanceof Curve25519 && self::$engines['libsodium']) {
@@ -77,7 +77,7 @@ final class PrivateKey extends EC implements Common\PrivateKey
             return $this->curve->encodePoint($point);
         }
         if (empty($point)) {
-            throw new RuntimeException('The infinity point is invalid');
+            throw new \RuntimeException('The infinity point is invalid');
         }
         return "\4" . $point[0]->toBytes(true) . $point[1]->toBytes(true);
     }
@@ -87,6 +87,7 @@ final class PrivateKey extends EC implements Common\PrivateKey
      *
      * @see self::verify()
      * @param string $message
+     * @return mixed
      */
     public function sign($message)
     {
@@ -122,22 +123,22 @@ final class PrivateKey extends EC implements Common\PrivateKey
                 $dom = !isset($this->context) ? '' :
                     'SigEd25519 no Ed25519 collisions' . "\0" . chr(strlen($this->context)) . $this->context;
             } else {
-                $context = $this->context ?? '';
+                $context = isset($this->context) ? $this->context : '';
                 $dom = 'SigEd448' . "\0" . chr(strlen($context)) . $context;
             }
             // SHA-512(dom2(F, C) || prefix || PH(M))
             $r = $hash->hash($dom . $secret . $message);
             $r = strrev($r);
             $r = new BigInteger($r, 256);
-            [, $r] = $r->divide($order);
+            list(, $r) = $r->divide($order);
             $R = $curve->multiplyPoint($curve->getBasePoint(), $r);
             $R = $curve->encodePoint($R);
             $k = $hash->hash($dom . $R . $A . $message);
             $k = strrev($k);
             $k = new BigInteger($k, 256);
-            [, $k] = $k->divide($order);
+            list(, $k) = $k->divide($order);
             $S = $k->multiply($dA)->add($r);
-            [, $S] = $S->divide($order);
+            list(, $S) = $S->divide($order);
             $S = str_pad(strrev($S->toBytes()), $curve::SIZE, "\0");
             return $shortFormat == 'SSH2' ? Strings::packSSH2('ss', 'ssh-' . strtolower($this->getCurve()), $R . $S) : $R . $S;
         }
@@ -156,7 +157,7 @@ final class PrivateKey extends EC implements Common\PrivateKey
                     return $signature;
                 }
 
-                ['r' => $r, 's' => $s] = ASN1Signature::load($signature);
+                extract(ASN1Signature::load($signature));
 
                 return $this->formatSignature($r, $s);
             }
@@ -170,16 +171,16 @@ final class PrivateKey extends EC implements Common\PrivateKey
 
         while (true) {
             $k = BigInteger::randomRange(self::$one, $order->subtract(self::$one));
-            [$x, $y] = $this->curve->multiplyPoint($this->curve->getBasePoint(), $k);
+            list($x, $y) = $this->curve->multiplyPoint($this->curve->getBasePoint(), $k);
             $x = $x->toBigInteger();
-            [, $r] = $x->divide($order);
+            list(, $r) = $x->divide($order);
             if ($r->equals(self::$zero)) {
                 continue;
             }
             $kinv = $k->modInverse($order);
             $temp = $z->add($dA->multiply($r));
             $temp = $kinv->multiply($temp);
-            [, $s] = $temp->divide($order);
+            list(, $s) = $temp->divide($order);
             if (!$s->equals(self::$zero)) {
                 break;
             }
@@ -213,9 +214,11 @@ final class PrivateKey extends EC implements Common\PrivateKey
     /**
      * Returns the private key
      *
+     * @param string $type
      * @param array $options optional
+     * @return string
      */
-    public function toString(string $type, array $options = []): string
+    public function toString($type, array $options = [])
     {
         $type = self::validatePlugin('Keys', $type, 'savePrivateKey');
 
@@ -226,6 +229,7 @@ final class PrivateKey extends EC implements Common\PrivateKey
      * Returns the public key
      *
      * @see self::getPrivateKey()
+     * @return mixed
      */
     public function getPublicKey()
     {
@@ -252,8 +256,10 @@ final class PrivateKey extends EC implements Common\PrivateKey
 
     /**
      * Returns a signature in the appropriate format
+     *
+     * @return string
      */
-    private function formatSignature(BigInteger $r, BigInteger $s): string
+    private function formatSignature(BigInteger $r, BigInteger $s)
     {
         $format = $this->sigFormat;
 

@@ -11,8 +11,6 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
-declare(strict_types=1);
-
 namespace phpseclib3\Crypt;
 
 use phpseclib3\Crypt\Common\AsymmetricKey;
@@ -31,10 +29,11 @@ abstract class PublicKeyLoader
     /**
      * Loads a public or private key
      *
+     * @return AsymmetricKey
      * @param string|array $key
-     * @throws NoKeyLoadedException if key is not valid
+     * @param string $password optional
      */
-    public static function load($key, ?string $password = null): AsymmetricKey
+    public static function load($key, $password = false)
     {
         try {
             return EC::load($key, $password);
@@ -67,9 +66,11 @@ abstract class PublicKeyLoader
     /**
      * Loads a private key
      *
+     * @return PrivateKey
      * @param string|array $key
+     * @param string $password optional
      */
-    public static function loadPrivateKey($key, ?string $password = null): PrivateKey
+    public static function loadPrivateKey($key, $password = false)
     {
         $key = self::load($key, $password);
         if (!$key instanceof PrivateKey) {
@@ -81,9 +82,10 @@ abstract class PublicKeyLoader
     /**
      * Loads a public key
      *
+     * @return PublicKey
      * @param string|array $key
      */
-    public static function loadPublicKey($key): PublicKey
+    public static function loadPublicKey($key)
     {
         $key = self::load($key);
         if (!$key instanceof PublicKey) {
@@ -95,9 +97,10 @@ abstract class PublicKeyLoader
     /**
      * Loads parameters
      *
+     * @return AsymmetricKey
      * @param string|array $key
      */
-    public static function loadParameters($key): AsymmetricKey
+    public static function loadParameters($key)
     {
         $key = self::load($key);
         if (!$key instanceof PrivateKey && !$key instanceof PublicKey) {

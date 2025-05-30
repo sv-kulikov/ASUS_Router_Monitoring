@@ -23,8 +23,6 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
-declare(strict_types=1);
-
 namespace phpseclib3\Crypt\RSA\Formats\Keys;
 
 use phpseclib3\Crypt\Common\Formats\Keys\PKCS8 as Progenitor;
@@ -43,14 +41,14 @@ abstract class PKCS8 extends Progenitor
      *
      * @var string
      */
-    public const OID_NAME = 'rsaEncryption';
+    const OID_NAME = 'rsaEncryption';
 
     /**
      * OID Value
      *
      * @var string
      */
-    public const OID_VALUE = '1.2.840.113549.1.1.1';
+    const OID_VALUE = '1.2.840.113549.1.1.1';
 
     /**
      * Child OIDs loaded
@@ -62,9 +60,11 @@ abstract class PKCS8 extends Progenitor
     /**
      * Break a public or private key down into its constituent components
      *
-     * @param string|array $key
+     * @param string $key
+     * @param string $password optional
+     * @return array
      */
-    public static function load($key, ?string $password = null): array
+    public static function load($key, $password = '')
     {
         $key = parent::load($key, $password);
 
@@ -87,8 +87,18 @@ abstract class PKCS8 extends Progenitor
 
     /**
      * Convert a private key to the appropriate format.
+     *
+     * @param BigInteger $n
+     * @param BigInteger $e
+     * @param BigInteger $d
+     * @param array $primes
+     * @param array $exponents
+     * @param array $coefficients
+     * @param string $password optional
+     * @param array $options optional
+     * @return string
      */
-    public static function savePrivateKey(BigInteger $n, BigInteger $e, BigInteger $d, array $primes, array $exponents, array $coefficients, ?string $password = null, array $options = []): string
+    public static function savePrivateKey(BigInteger $n, BigInteger $e, BigInteger $d, array $primes, array $exponents, array $coefficients, $password = '', array $options = [])
     {
         $key = PKCS1::savePrivateKey($n, $e, $d, $primes, $exponents, $coefficients);
         $key = ASN1::extractBER($key);
@@ -98,9 +108,12 @@ abstract class PKCS8 extends Progenitor
     /**
      * Convert a public key to the appropriate format
      *
+     * @param BigInteger $n
+     * @param BigInteger $e
      * @param array $options optional
+     * @return string
      */
-    public static function savePublicKey(BigInteger $n, BigInteger $e, array $options = []): string
+    public static function savePublicKey(BigInteger $n, BigInteger $e, array $options = [])
     {
         $key = PKCS1::savePublicKey($n, $e);
         $key = ASN1::extractBER($key);

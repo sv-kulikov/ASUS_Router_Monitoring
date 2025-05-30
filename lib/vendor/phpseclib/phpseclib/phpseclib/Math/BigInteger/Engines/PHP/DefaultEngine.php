@@ -11,8 +11,6 @@
  * @link      http://pear.php.net/package/Math_BigInteger
  */
 
-declare(strict_types=1);
-
 namespace phpseclib3\Math\BigInteger\Engines\PHP;
 
 use phpseclib3\Math\BigInteger\Engines\PHP\Reductions\EvalBarrett;

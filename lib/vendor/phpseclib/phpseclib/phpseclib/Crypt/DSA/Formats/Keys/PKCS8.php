@@ -21,12 +21,9 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
-declare(strict_types=1);
-
 namespace phpseclib3\Crypt\DSA\Formats\Keys;
 
 use phpseclib3\Crypt\Common\Formats\Keys\PKCS8 as Progenitor;
-use phpseclib3\Exception\RuntimeException;
 use phpseclib3\File\ASN1;
 use phpseclib3\File\ASN1\Maps;
 use phpseclib3\Math\BigInteger;
@@ -43,14 +40,14 @@ abstract class PKCS8 extends Progenitor
      *
      * @var string
      */
-    public const OID_NAME = 'id-dsa';
+    const OID_NAME = 'id-dsa';
 
     /**
      * OID Value
      *
      * @var string
      */
-    public const OID_VALUE = '1.2.840.10040.4.1';
+    const OID_VALUE = '1.2.840.10040.4.1';
 
     /**
      * Child OIDs loaded
@@ -62,9 +59,11 @@ abstract class PKCS8 extends Progenitor
     /**
      * Break a public or private key down into its constituent components
      *
-     * @param string|array $key
+     * @param string $key
+     * @param string $password optional
+     * @return array
      */
-    public static function load($key, ?string $password = null): array
+    public static function load($key, $password = '')
     {
         $key = parent::load($key, $password);
 
@@ -72,22 +71,22 @@ abstract class PKCS8 extends Progenitor
 
         $decoded = ASN1::decodeBER($key[$type . 'Algorithm']['parameters']->element);
         if (!$decoded) {
-            throw new RuntimeException('Unable to decode BER of parameters');
+            throw new \RuntimeException('Unable to decode BER of parameters');
         }
         $components = ASN1::asn1map($decoded[0], Maps\DSAParams::MAP);
         if (!is_array($components)) {
-            throw new RuntimeException('Unable to perform ASN1 mapping on parameters');
+            throw new \RuntimeException('Unable to perform ASN1 mapping on parameters');
         }
 
         $decoded = ASN1::decodeBER($key[$type]);
         if (empty($decoded)) {
-            throw new RuntimeException('Unable to decode BER');
+            throw new \RuntimeException('Unable to decode BER');
         }
 
         $var = $type == 'privateKey' ? 'x' : 'y';
         $components[$var] = ASN1::asn1map($decoded[0], Maps\DSAPublicKey::MAP);
         if (!$components[$var] instanceof BigInteger) {
-            throw new RuntimeException('Unable to perform ASN1 mapping');
+            throw new \RuntimeException('Unable to perform ASN1 mapping');
         }
 
         if (isset($key['meta'])) {
@@ -99,13 +98,22 @@ abstract class PKCS8 extends Progenitor
 
     /**
      * Convert a private key to the appropriate format.
+     *
+     * @param BigInteger $p
+     * @param BigInteger $q
+     * @param BigInteger $g
+     * @param BigInteger $y
+     * @param BigInteger $x
+     * @param string $password optional
+     * @param array $options optional
+     * @return string
      */
-    public static function savePrivateKey(BigInteger $p, BigInteger $q, BigInteger $g, BigInteger $y, BigInteger $x, ?string $password = null, array $options = []): string
+    public static function savePrivateKey(BigInteger $p, BigInteger $q, BigInteger $g, BigInteger $y, BigInteger $x, $password = '', array $options = [])
     {
         $params = [
             'p' => $p,
             'q' => $q,
-            'g' => $g,
+            'g' => $g
         ];
         $params = ASN1::encodeDER($params, Maps\DSAParams::MAP);
         $params = new ASN1\Element($params);
@@ -116,14 +124,19 @@ abstract class PKCS8 extends Progenitor
     /**
      * Convert a public key to the appropriate format
      *
+     * @param BigInteger $p
+     * @param BigInteger $q
+     * @param BigInteger $g
+     * @param BigInteger $y
      * @param array $options optional
+     * @return string
      */
-    public static function savePublicKey(BigInteger $p, BigInteger $q, BigInteger $g, BigInteger $y, array $options = []): string
+    public static function savePublicKey(BigInteger $p, BigInteger $q, BigInteger $g, BigInteger $y, array $options = [])
     {
         $params = [
             'p' => $p,
             'q' => $q,
-            'g' => $g,
+            'g' => $g
         ];
         $params = ASN1::encodeDER($params, Maps\DSAParams::MAP);
         $params = new ASN1\Element($params);

@@ -9,13 +9,10 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
-declare(strict_types=1);
-
 namespace phpseclib3\Crypt\DH;
 
 use phpseclib3\Crypt\Common;
 use phpseclib3\Crypt\DH;
-use phpseclib3\Math\BigInteger;
 
 /**
  * DH Private Key
@@ -29,21 +26,23 @@ final class PrivateKey extends DH
     /**
      * Private Key
      *
-     * @var BigInteger
+     * @var \phpseclib3\Math\BigInteger
      */
     protected $privateKey;
 
     /**
      * Public Key
      *
-     * @var BigInteger
+     * @var \phpseclib3\Math\BigInteger
      */
     protected $publicKey;
 
     /**
      * Returns the public key
+     *
+     * @return PublicKey
      */
-    public function getPublicKey(): PublicKey
+    public function getPublicKey()
     {
         $type = self::validatePlugin('Keys', 'PKCS8', 'savePublicKey');
 
@@ -59,9 +58,11 @@ final class PrivateKey extends DH
     /**
      * Returns the private key
      *
+     * @param string $type
      * @param array $options optional
+     * @return string
      */
-    public function toString(string $type, array $options = []): string
+    public function toString($type, array $options = [])
     {
         $type = self::validatePlugin('Keys', $type, 'savePrivateKey');
 

@@ -19,12 +19,9 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
-declare(strict_types=1);
-
 namespace phpseclib3\Crypt\DH\Formats\Keys;
 
 use phpseclib3\Crypt\Common\Formats\Keys\PKCS1 as Progenitor;
-use phpseclib3\Exception\RuntimeException;
 use phpseclib3\File\ASN1;
 use phpseclib3\File\ASN1\Maps;
 use phpseclib3\Math\BigInteger;
@@ -39,20 +36,22 @@ abstract class PKCS1 extends Progenitor
     /**
      * Break a public or private key down into its constituent components
      *
-     * @param string|array $key
+     * @param string $key
+     * @param string $password optional
+     * @return array
      */
-    public static function load($key, ?string $password = null): array
+    public static function load($key, $password = '')
     {
         $key = parent::load($key, $password);
 
         $decoded = ASN1::decodeBER($key);
         if (!$decoded) {
-            throw new RuntimeException('Unable to decode BER');
+            throw new \RuntimeException('Unable to decode BER');
         }
 
         $components = ASN1::asn1map($decoded[0], Maps\DHParameter::MAP);
         if (!is_array($components)) {
-            throw new RuntimeException('Unable to perform ASN1 mapping on parameters');
+            throw new \RuntimeException('Unable to perform ASN1 mapping on parameters');
         }
 
         return $components;
@@ -60,12 +59,14 @@ abstract class PKCS1 extends Progenitor
 
     /**
      * Convert EC parameters to the appropriate format
+     *
+     * @return string
      */
-    public static function saveParameters(BigInteger $prime, BigInteger $base, array $options = []): string
+    public static function saveParameters(BigInteger $prime, BigInteger $base, array $options = [])
     {
         $params = [
             'prime' => $prime,
-            'base' => $base,
+            'base' => $base
         ];
         $params = ASN1::encodeDER($params, Maps\DHParameter::MAP);
 

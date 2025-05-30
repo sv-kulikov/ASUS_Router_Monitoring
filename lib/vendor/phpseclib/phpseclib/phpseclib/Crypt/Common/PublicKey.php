@@ -9,8 +9,6 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
-declare(strict_types=1);
-
 namespace phpseclib3\Crypt\Common;
 
 /**
@@ -22,6 +20,6 @@ interface PublicKey
 {
     public function verify($message, $signature);
     //public function encrypt($plaintext);
-    public function toString(string $type, array $options = []): string;
+    public function toString($type, array $options = []);
     public function getFingerprint($algorithm);
 }

@@ -9,8 +9,6 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
-declare(strict_types=1);
-
 namespace phpseclib3\Crypt\Common;
 
 /**
@@ -23,10 +21,11 @@ interface PrivateKey
     public function sign($message);
     //public function decrypt($ciphertext);
     public function getPublicKey();
-    public function toString(string $type, array $options = []): string;
+    public function toString($type, array $options = []);
 
     /**
-     * @return static
+     * @param string|false $password
+     * @return mixed
      */
-    public function withPassword(?string $password = null): PrivateKey;
+    public function withPassword($password = false);
 }

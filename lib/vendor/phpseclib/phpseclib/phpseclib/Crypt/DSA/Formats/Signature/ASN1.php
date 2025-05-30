@@ -14,8 +14,6 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
-declare(strict_types=1);
-
 namespace phpseclib3\Crypt\DSA\Formats\Signature;
 
 use phpseclib3\File\ASN1 as Encoder;
@@ -32,9 +30,10 @@ abstract class ASN1
     /**
      * Loads a signature
      *
+     * @param string $sig
      * @return array|bool
      */
-    public static function load(string $sig)
+    public static function load($sig)
     {
         if (!is_string($sig)) {
             return false;
@@ -51,8 +50,12 @@ abstract class ASN1
 
     /**
      * Returns a signature in the appropriate format
+     *
+     * @param BigInteger $r
+     * @param BigInteger $s
+     * @return string
      */
-    public static function save(BigInteger $r, BigInteger $s): string
+    public static function save(BigInteger $r, BigInteger $s)
     {
         return Encoder::encodeDER(compact('r', 's'), Maps\DssSigValue::MAP);
     }

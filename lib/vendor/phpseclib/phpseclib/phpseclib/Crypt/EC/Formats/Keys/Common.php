@@ -11,8 +11,6 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
-declare(strict_types=1);
-
 namespace phpseclib3\Crypt\EC\Formats\Keys;
 
 use phpseclib3\Common\Functions\Strings;
@@ -20,8 +18,6 @@ use phpseclib3\Crypt\EC\BaseCurves\Base as BaseCurve;
 use phpseclib3\Crypt\EC\BaseCurves\Binary as BinaryCurve;
 use phpseclib3\Crypt\EC\BaseCurves\Prime as PrimeCurve;
 use phpseclib3\Crypt\EC\BaseCurves\TwistedEdwards as TwistedEdwardsCurve;
-use phpseclib3\Exception\RuntimeException;
-use phpseclib3\Exception\UnexpectedValueException;
 use phpseclib3\Exception\UnsupportedCurveException;
 use phpseclib3\File\ASN1;
 use phpseclib3\File\ASN1\Maps;
@@ -58,7 +54,7 @@ trait Common
     /**
      * Initialize static variables
      */
-    private static function initialize_static_variables(): void
+    private static function initialize_static_variables()
     {
         if (empty(self::$curveOIDs)) {
             // the sec* curves are from the standards for efficient cryptography group
@@ -167,7 +163,7 @@ trait Common
                 'brainpoolP384r1' => '1.3.36.3.3.2.8.1.1.11',
                 'brainpoolP384t1' => '1.3.36.3.3.2.8.1.1.12',
                 'brainpoolP512r1' => '1.3.36.3.3.2.8.1.1.13',
-                'brainpoolP512t1' => '1.3.36.3.3.2.8.1.1.14',
+                'brainpoolP512t1' => '1.3.36.3.3.2.8.1.1.14'
             ];
             ASN1::loadOIDs([
                 'prime-field' => '1.2.840.10045.1.1',
@@ -176,7 +172,7 @@ trait Common
                 // per http://www.secg.org/SEC1-Ver-1.0.pdf#page=84, gnBasis "not used here"
                 'gnBasis' => '1.2.840.10045.1.2.3.1', // NULL
                 'tpBasis' => '1.2.840.10045.1.2.3.2', // Trinomial
-                'ppBasis' => '1.2.840.10045.1.2.3.3',  // Pentanomial
+                'ppBasis' => '1.2.840.10045.1.2.3.3'  // Pentanomial
             ] + self::$curveOIDs);
         }
     }
@@ -186,8 +182,10 @@ trait Common
      *
      * If the key contains an implicit curve phpseclib needs the curve
      * to be explicitly provided
+     *
+     * @param BaseCurve $curve
      */
-    public static function setImplicitCurve(BaseCurve $curve): void
+    public static function setImplicitCurve(BaseCurve $curve)
     {
         self::$implicitCurve = $curve;
     }
@@ -196,12 +194,13 @@ trait Common
      * Returns an instance of \phpseclib3\Crypt\EC\BaseCurves\Base based
      * on the curve parameters
      *
+     * @param array $params
      * @return BaseCurve|false
      */
     protected static function loadCurveByParam(array $params)
     {
         if (count($params) > 1) {
-            throw new RuntimeException('No parameters are present');
+            throw new \RuntimeException('No parameters are present');
         }
         if (isset($params['namedCurve'])) {
             $curve = '\phpseclib3\Crypt\EC\Curves\\' . $params['namedCurve'];
@@ -212,7 +211,7 @@ trait Common
         }
         if (isset($params['implicitCurve'])) {
             if (!isset(self::$implicitCurve)) {
-                throw new RuntimeException('Implicit curves can be provided by calling setImplicitCurve');
+                throw new \RuntimeException('Implicit curves can be provided by calling setImplicitCurve');
             }
             return self::$implicitCurve;
         }
@@ -261,7 +260,7 @@ trait Common
                     throw new UnsupportedCurveException('Field Type of ' . $data['fieldID']['fieldType'] . ' is not supported');
             }
         }
-        throw new RuntimeException('No valid parameters are present');
+        throw new \RuntimeException('No valid parameters are present');
     }
 
     /**
@@ -269,9 +268,11 @@ trait Common
      *
      * Supports both compressed and uncompressed points
      *
+     * @param string $str
+     * @param BaseCurve $curve
      * @return object[]
      */
-    public static function extractPoint(string $str, BaseCurve $curve): array
+    public static function extractPoint($str, BaseCurve $curve)
     {
         if ($curve instanceof TwistedEdwardsCurve) {
             // first step of point deciding as discussed at the following URL's:
@@ -283,11 +284,11 @@ trait Common
             $y[0] = $y[0] & chr(0x7F);
             $y = new BigInteger($y, 256);
             if ($y->compare($curve->getModulo()) >= 0) {
-                throw new RuntimeException('The Y coordinate should not be >= the modulo');
+                throw new \RuntimeException('The Y coordinate should not be >= the modulo');
             }
             $point = $curve->recoverX($y, $sign);
             if (!$curve->verifyPoint($point)) {
-                throw new RuntimeException('Unable to verify that point exists on curve');
+                throw new \RuntimeException('Unable to verify that point exists on curve');
             }
             return $point;
         }
@@ -295,7 +296,7 @@ trait Common
         // the first byte of a bit string represents the number of bits in the last byte that are to be ignored but,
         // currently, bit strings wanting a non-zero amount of bits trimmed are not supported
         if (($val = Strings::shift($str)) != "\0") {
-            throw new UnexpectedValueException('extractPoint expects the first byte to be null - not ' . Strings::bin2hex($val));
+            throw new \UnexpectedValueException('extractPoint expects the first byte to be null - not ' . Strings::bin2hex($val));
         }
         if ($str == "\0") {
             return [];
@@ -311,36 +312,37 @@ trait Common
         // point compression is not being used
         if ($keylen == 2 * $order + 1) {
             preg_match("#(.)(.{{$order}})(.{{$order}})#s", $str, $matches);
-            [, $w, $x, $y] = $matches;
+            list(, $w, $x, $y) = $matches;
             if ($w != "\4") {
-                throw new UnexpectedValueException('The first byte of an uncompressed point should be 04 - not ' . Strings::bin2hex($val));
+                throw new \UnexpectedValueException('The first byte of an uncompressed point should be 04 - not ' . Strings::bin2hex($val));
             }
             $point = [
                 $curve->convertInteger(new BigInteger($x, 256)),
-                $curve->convertInteger(new BigInteger($y, 256)),
+                $curve->convertInteger(new BigInteger($y, 256))
             ];
 
             if (!$curve->verifyPoint($point)) {
-                throw new RuntimeException('Unable to verify that point exists on curve');
+                throw new \RuntimeException('Unable to verify that point exists on curve');
             }
 
             return $point;
         }
 
-        throw new UnexpectedValueException('The string representation of the points is not of an appropriate length');
+        throw new \UnexpectedValueException('The string representation of the points is not of an appropriate length');
     }
 
     /**
      * Encode Parameters
      *
+     * @todo Maybe at some point this could be moved to __toString() for each of the curves?
+     * @param BaseCurve $curve
      * @param bool $returnArray optional
      * @param array $options optional
      * @return string|false
-     * @todo Maybe at some point this could be moved to __toString() for each of the curves?
      */
-    private static function encodeParameters(BaseCurve $curve, bool $returnArray = false, array $options = [])
+    private static function encodeParameters(BaseCurve $curve, $returnArray = false, array $options = [])
     {
-        $useNamedCurves = $options['namedCurve'] ?? self::$useNamedCurves;
+        $useNamedCurves = isset($options['namedCurve']) ? $options['namedCurve'] : self::$useNamedCurves;
 
         $reflect = new \ReflectionClass($curve);
         $name = $reflect->getShortName();
@@ -380,8 +382,8 @@ trait Common
                             break;
                         }
 
-                        [$candidateX, $candidateY] = $candidate->getBasePoint();
-                        [$curveX, $curveY] = $curve->getBasePoint();
+                        list($candidateX, $candidateY) = $candidate->getBasePoint();
+                        list($curveX, $curveY) = $curve->getBasePoint();
                         if ($candidateX->toBytes() != $curveX->toBytes()) {
                             break;
                         }
@@ -406,8 +408,8 @@ trait Common
                             break;
                         }
 
-                        [$candidateX, $candidateY] = $candidate->getBasePoint();
-                        [$curveX, $curveY] = $curve->getBasePoint();
+                        list($candidateX, $candidateY) = $candidate->getBasePoint();
+                        list($curveX, $curveY) = $curve->getBasePoint();
                         if ($candidateX->toBytes() != $curveX->toBytes()) {
                             break;
                         }
@@ -427,7 +429,7 @@ trait Common
         // https://crypto.stackexchange.com/a/27914/4520
         // https://en.wikipedia.org/wiki/Schoof%E2%80%93Elkies%E2%80%93Atkin_algorithm
         if (!$order) {
-            throw new RuntimeException('Specified Curves need the order to be specified');
+            throw new \RuntimeException('Specified Curves need the order to be specified');
         }
         $point = $curve->getBasePoint();
         $x = $point[0]->toBytes();
@@ -450,14 +452,14 @@ trait Common
                 'version' => 'ecdpVer1',
                 'fieldID' => [
                     'fieldType' => 'prime-field',
-                    'parameters' => $curve->getModulo(),
+                    'parameters' => $curve->getModulo()
                 ],
                 'curve' => [
                     'a' => $curve->getA()->toBytes(),
-                    'b' => $curve->getB()->toBytes(),
+                    'b' => $curve->getB()->toBytes()
                 ],
                 'base' => "\4" . $x . $y,
-                'order' => $order,
+                'order' => $order
             ];
 
             return $returnArray ?
@@ -481,7 +483,7 @@ trait Common
                     $modulo = [
                         'k1' => new BigInteger($modulo[2]),
                         'k2' => new BigInteger($modulo[1]),
-                        'k3' => new BigInteger($modulo[0]),
+                        'k3' => new BigInteger($modulo[0])
                     ];
                     $modulo = ASN1::encodeDER($modulo, Maps\Pentanomial::MAP);
                     $modulo = new ASN1\Element($modulo);
@@ -489,7 +491,7 @@ trait Common
             $params = ASN1::encodeDER([
                 'm' => new BigInteger($m),
                 'basis' => $basis,
-                'parameters' => $modulo,
+                'parameters' => $modulo
             ], Maps\Characteristic_two::MAP);
             $params = new ASN1\Element($params);
             $a = ltrim($curve->getA()->toBytes(), "\0");
@@ -504,14 +506,14 @@ trait Common
                 'version' => 'ecdpVer1',
                 'fieldID' => [
                     'fieldType' => 'characteristic-two-field',
-                    'parameters' => $params,
+                    'parameters' => $params
                 ],
                 'curve' => [
                     'a' => $a,
-                    'b' => $b,
+                    'b' => $b
                 ],
                 'base' => "\4" . $x . $y,
-                'order' => $order,
+                'order' => $order
             ];
 
             return $returnArray ?
@@ -528,7 +530,7 @@ trait Common
      * A specified curve has all the coefficients, the base points, etc, explicitely included.
      * A specified curve is a more verbose way of representing a curve
      */
-    public static function useSpecifiedCurve(): void
+    public static function useSpecifiedCurve()
     {
         self::$useNamedCurves = false;
     }
@@ -540,7 +542,7 @@ trait Common
      * know what the coefficients, the base points, etc, are from the name of the curve.
      * A named curve is a more concise way of representing a curve
      */
-    public static function useNamedCurve(): void
+    public static function useNamedCurve()
     {
         self::$useNamedCurves = true;
     }

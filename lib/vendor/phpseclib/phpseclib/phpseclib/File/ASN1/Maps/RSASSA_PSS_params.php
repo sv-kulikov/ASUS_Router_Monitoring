@@ -13,8 +13,6 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
-declare(strict_types=1);
-
 namespace phpseclib3\File\ASN1\Maps;
 
 use phpseclib3\File\ASN1;
@@ -26,7 +24,7 @@ use phpseclib3\File\ASN1;
  */
 abstract class RSASSA_PSS_params
 {
-    public const MAP = [
+    const MAP = [
         'type' => ASN1::TYPE_SEQUENCE,
         'children' => [
             'hashAlgorithm' => [
@@ -46,15 +44,15 @@ abstract class RSASSA_PSS_params
                 'constant' => 2,
                 'optional' => true,
                 'explicit' => true,
-                'default' => 20,
+                'default' => 20
             ],
             'trailerField' => [
                 'type' => ASN1::TYPE_INTEGER,
                 'constant' => 3,
                 'optional' => true,
                 'explicit' => true,
-                'default' => 1,
-            ],
-        ],
+                'default' => 1
+            ]
+        ]
     ];
 }

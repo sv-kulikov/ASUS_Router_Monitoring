@@ -11,8 +11,6 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
-declare(strict_types=1);
-
 namespace phpseclib3\File\ASN1\Maps;
 
 use phpseclib3\File\ASN1;
@@ -24,33 +22,33 @@ use phpseclib3\File\ASN1;
  */
 abstract class TBSCertList
 {
-    public const MAP = [
+    const MAP = [
         'type' => ASN1::TYPE_SEQUENCE,
         'children' => [
             'version' => [
                 'type' => ASN1::TYPE_INTEGER,
                 'mapping' => ['v1', 'v2'],
                 'optional' => true,
-                'default' => 'v1',
+                'default' => 'v1'
             ],
             'signature' => AlgorithmIdentifier::MAP,
             'issuer' => Name::MAP,
             'thisUpdate' => Time::MAP,
             'nextUpdate' => [
-                'optional' => true,
+                'optional' => true
             ] + Time::MAP,
             'revokedCertificates' => [
                 'type' => ASN1::TYPE_SEQUENCE,
                 'optional' => true,
                 'min' => 0,
                 'max' => -1,
-                'children' => RevokedCertificate::MAP,
+                'children' => RevokedCertificate::MAP
             ],
             'crlExtensions' => [
                 'constant' => 0,
                 'optional' => true,
-                'explicit' => true,
-            ] + Extensions::MAP,
-        ],
+                'explicit' => true
+            ] + Extensions::MAP
+        ]
     ];
 }

@@ -11,8 +11,6 @@
  * @link      http://pear.php.net/package/Math_BigInteger
  */
 
-declare(strict_types=1);
-
 namespace phpseclib3\Math\BigInteger\Engines\PHP\Reductions;
 
 use phpseclib3\Math\BigInteger\Engines\PHP\Base;
@@ -26,16 +24,26 @@ abstract class PowerOfTwo extends Base
 {
     /**
      * Prepare a number for use in Montgomery Modular Reductions
+     *
+     * @param array $x
+     * @param array $n
+     * @param string $class
+     * @return array
      */
-    protected static function prepareReduce(array $x, array $n, string $class): array
+    protected static function prepareReduce(array $x, array $n, $class)
     {
         return self::reduce($x, $n, $class);
     }
 
     /**
      * Power Of Two Reduction
+     *
+     * @param array $x
+     * @param array $n
+     * @param string $class
+     * @return array
      */
-    protected static function reduce(array $x, array $n, string $class): array
+    protected static function reduce(array $x, array $n, $class)
     {
         $lhs = new $class();
         $lhs->value = $x;

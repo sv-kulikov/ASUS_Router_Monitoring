@@ -11,8 +11,6 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
-declare(strict_types=1);
-
 namespace phpseclib3\Exception;
 
 /**
@@ -20,6 +18,6 @@ namespace phpseclib3\Exception;
  *
  * @author  Jim Wigginton <terrafrost@php.net>
  */
-class ConnectionClosedException extends \RuntimeException implements ExceptionInterface
+class ConnectionClosedException extends \RuntimeException
 {
 }

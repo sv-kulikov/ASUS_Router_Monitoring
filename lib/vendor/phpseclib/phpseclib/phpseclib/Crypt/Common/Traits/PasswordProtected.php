@@ -11,8 +11,6 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
-declare(strict_types=1);
-
 namespace phpseclib3\Crypt\Common\Traits;
 
 /**
@@ -23,9 +21,11 @@ namespace phpseclib3\Crypt\Common\Traits;
 trait PasswordProtected
 {
     /**
-     * @var string|null
+     * Password
+     *
+     * @var string|bool
      */
-    private $password = null;
+    private $password = false;
 
     /**
      * Sets the password
@@ -35,10 +35,9 @@ trait PasswordProtected
      *
      * @see self::createKey()
      * @see self::load()
-     *
-     * @return static
+     * @param string|bool $password
      */
-    public function withPassword(?string $password = null): self
+    public function withPassword($password = false)
     {
         $new = clone $this;
         $new->password = $password;

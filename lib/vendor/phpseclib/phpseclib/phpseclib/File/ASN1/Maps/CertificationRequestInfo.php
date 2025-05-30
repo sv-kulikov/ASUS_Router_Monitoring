@@ -11,8 +11,6 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
-declare(strict_types=1);
-
 namespace phpseclib3\File\ASN1\Maps;
 
 use phpseclib3\File\ASN1;
@@ -24,20 +22,20 @@ use phpseclib3\File\ASN1;
  */
 abstract class CertificationRequestInfo
 {
-    public const MAP = [
+    const MAP = [
         'type' => ASN1::TYPE_SEQUENCE,
         'children' => [
             'version' => [
                 'type' => ASN1::TYPE_INTEGER,
-                'mapping' => ['v1'],
+                'mapping' => ['v1']
             ],
             'subject' => Name::MAP,
             'subjectPKInfo' => SubjectPublicKeyInfo::MAP,
             'attributes' => [
                 'constant' => 0,
                 'optional' => true,
-                'implicit' => true,
+                'implicit' => true
             ] + Attributes::MAP,
-        ],
+        ]
     ];
 }

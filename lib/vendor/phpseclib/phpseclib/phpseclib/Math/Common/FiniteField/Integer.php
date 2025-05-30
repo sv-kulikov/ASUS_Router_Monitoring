@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * Finite Field Integer Base Class
  *
@@ -32,13 +30,15 @@ abstract class Integer implements \JsonSerializable
      * @return array{hex: string}
      */
     #[\ReturnTypeWillChange]
-    public function jsonSerialize(): array
+    public function jsonSerialize()
     {
         return ['hex' => $this->toHex(true)];
     }
 
     /**
      * Converts an Integer to a hex string (eg. base-16).
+     *
+     * @return string
      */
-    abstract public function toHex(): string;
+    abstract public function toHex();
 }

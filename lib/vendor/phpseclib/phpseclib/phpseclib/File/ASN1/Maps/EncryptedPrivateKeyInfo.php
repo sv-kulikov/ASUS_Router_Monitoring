@@ -11,8 +11,6 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
-declare(strict_types=1);
-
 namespace phpseclib3\File\ASN1\Maps;
 
 use phpseclib3\File\ASN1;
@@ -24,11 +22,11 @@ use phpseclib3\File\ASN1;
  */
 abstract class EncryptedPrivateKeyInfo
 {
-    public const MAP = [
+    const MAP = [
         'type' => ASN1::TYPE_SEQUENCE,
         'children' => [
             'encryptionAlgorithm' => AlgorithmIdentifier::MAP,
-            'encryptedData' => EncryptedData::MAP,
-        ],
+            'encryptedData' => EncryptedData::MAP
+        ]
     ];
 }

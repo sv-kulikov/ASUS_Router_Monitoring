@@ -11,8 +11,6 @@
  * @link      http://phpseclib.sourceforge.net
  */
 
-declare(strict_types=1);
-
 namespace phpseclib3\Crypt\Common\Formats\Keys;
 
 use phpseclib3\Common\Functions\Strings;
@@ -27,9 +25,11 @@ abstract class JWK
     /**
      * Break a public or private key down into its constituent components
      *
-     * @param string|array $key
+     * @param string $key
+     * @param string $password
+     * @return array
      */
-    protected static function loadHelper($key): \stdClass
+    public static function load($key, $password = '')
     {
         if (!Strings::is_stringable($key)) {
             throw new \UnexpectedValueException('Key should be a string - not a ' . gettype($key));
@@ -37,18 +37,17 @@ abstract class JWK
 
         $key = preg_replace('#\s#', '', $key); // remove whitespace
 
-        $key = json_decode($key, null, 512, JSON_THROW_ON_ERROR);
+        if (PHP_VERSION_ID >= 73000) {
+            $key = json_decode($key, null, 512, JSON_THROW_ON_ERROR);
+        } else {
+            $key = json_decode($key);
+            if (!$key) {
+                throw new \RuntimeException('Unable to decode JSON');
+            }
+        }
 
         if (isset($key->kty)) {
             return $key;
-        }
-
-        if (!is_object($key)) {
-            throw new \RuntimeException('invalid JWK: not an object');
-        }
-
-        if (!isset($key->keys)) {
-            throw new \RuntimeException('invalid JWK: object has no property "keys"');
         }
 
         if (count($key->keys) != 1) {
@@ -60,8 +59,10 @@ abstract class JWK
 
     /**
      * Wrap a key appropriately
+     *
+     * @return string
      */
-    protected static function wrapKey(array $key, array $options): string
+    protected static function wrapKey(array $key, array $options)
     {
         return json_encode(['keys' => [$key + $options]]);
     }
