@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+    <router>
+        <ip>192.168.1.1</ip>
+        <login>login1</login>
+        <password>password1</password>
+        <port>22</port>
+        <cpuCores>4</cpuCores>
+    </router>
+    <repeater>
+        <ip>192.168.1.2</ip>
+        <login>login2</login>
+        <password>password2</password>
+        <port>22</port>
+        <cpuCores>4</cpuCores>
+	    <addDefaultRouteOnUtilityStart>ip route add default via 192.168.1.1</addDefaultRouteOnUtilityStart>
+    </repeater>
+    <settings>
+        <refreshRate>5</refreshRate>
+        <screenWidth>120</screenWidth>
+        <screenHeight>36</screenHeight>
+        <showCurrentMinMaxAvg>N</showCurrentMinMaxAvg>
+        <showDetailedDevicesData>Y</showDetailedDevicesData>
+	<checkForKeyboardEvents>Y</checkForKeyboardEvents>
+        <logData>Y</logData>
+        <logPath>../_ASUS_Logs</logPath>
+    </settings>
+    <providers>
+        <provider>
+            <providerName>Provider1</providerName>
+            <vpnAdapterName>ppp0</vpnAdapterName>
+        </provider>
+        <provider>
+            <providerName>Provider2</providerName>
+            <vpnAdapterName>ppp1</vpnAdapterName>
+        </provider>
+    </providers>
+    <telegram>
+        <telegramEnabled>Y</telegramEnabled>
+        <telegramRealtimeEnabled>Y</telegramRealtimeEnabled>
+        <telegramStatusEnabled>Y</telegramStatusEnabled>
+        <telegramStatusPeriod>60</telegramStatusPeriod>
+        <telegramLogFile>../_ASUS_Logs/_tg.log</telegramLogFile>
+        <telegramBotToken>1234567890:long_string</telegramBotToken>
+        <telegramChatId>0987654321</telegramChatId>
+    </telegram>
+</config>
