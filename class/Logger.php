@@ -164,12 +164,11 @@ class Logger
     }
 
 
-    /**
-     * Prepares and returns a formatted string for Telegram logging.
+    /** Generates a formatted HTML string for logging network data to Telegram.
      *
-     * @param array $providers Provider statistics.
-     * @param array $hardwareStats Hardware-related statistics.
-     * @return string Formatted string for Telegram logging.
+     * @param array $providers Array of provider data.
+     * @param array $hardware Array of hardware data.
+     * @return string Formatted HTML string with network data.
      */
     public function getPrettyTelegramLogData(array $providers, array $hardware): string
     {

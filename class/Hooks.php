@@ -21,7 +21,7 @@
  * get_traffic()          - current network usage and total usage
  * get_status_wan()       - WAN status info
  * is_wan_online()        - WAN connected true / false
- * get_lan_ip_adress()    - router IP address for LAN
+ * get_lan_ip_address()   - router IP address for LAN
  * get_lan_netmask()      - network mask for LAN
  * get_lan_gateway()      - gateway address for LAN
  * get_dhcp_list()        - list of DHCP leases

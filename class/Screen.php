@@ -242,10 +242,10 @@ class Screen
      * @param int $speedLengthWithSpace The length of the speed value including space.
      * @param int $paddingSpaces The number of spaces to pad after the line.
      * @param Color $color The color to apply to the text.
-     * @param Color $barColor The color of the bar background (default is dark gray).
+     * @param Color $barColor The color of the bar background (default is dark-gray).
      * @return string The formatted bar graph line.
      */
-    private function getBar($directionLetter, $speedValue, $globalMaxSpeed, $oneProviderWidth, $speedLengthWithSpace, $paddingSpaces, $color, $barColor = Color::DARK_GRAY): string
+    private function getBar(string $directionLetter, int|float $speedValue, int|float $globalMaxSpeed, int $oneProviderWidth, int $speedLengthWithSpace, int $paddingSpaces, Color $color, Color $barColor = Color::DARK_GRAY): string
     {
         // If you want, change the symbols to: █ ▓ ▒
 
@@ -276,7 +276,7 @@ class Screen
      * @param Color $color The color to apply to the text.
      * @return string The formatted line without a graph.
      */
-    private function getLineWithoutGraph($directionLetter, $speedValue, $speedLengthWithSpace, $paddingSpaces, $color): string
+    private function getLineWithoutGraph(string $directionLetter, int|float $speedValue, int $speedLengthWithSpace, int $paddingSpaces, Color $color): string
     {
         $labelToShow = $directionLetter . ' ' . str_pad($this->formatBytes($speedValue) . '/s', $speedLengthWithSpace);
         $labelToShow = str_pad($labelToShow, $this->oneProviderWidth);
@@ -292,8 +292,8 @@ class Screen
      * total traffic value, and additional information such as idle count and traffic per day.
      *
      * @param string $directionLetter The letter representing the direction (e.g., 'R' for RX, 'T' for TX).
-     * @param int|float $trafficValue The traffic value to format.
-     * @param int|float $totalTrafficValue The total traffic value to format.
+     * @param float|int $trafficValue The traffic value to format.
+     * @param float|int $totalTrafficValue The total traffic value to format.
      * @param int $idleCount The count of idle connections.
      * @param int $daysSinceStart The number of days since the start of the utility.
      * @param int $speedLengthWithSpace The length of the speed value including space.
@@ -301,7 +301,7 @@ class Screen
      * @param Color $color The color to apply to the text.
      * @return string The formatted line with total traffic.
      */
-    private function getLineWithTotalTraffic($directionLetter, $trafficValue, $totalTrafficValue, $idleCount, $daysSinceStart, $speedLengthWithSpace, $paddingSpaces, $color): string
+    private function getLineWithTotalTraffic(string $directionLetter, float|int $trafficValue, float|int $totalTrafficValue, int $idleCount, int $daysSinceStart, int $speedLengthWithSpace, int $paddingSpaces, Color $color): string
     {
         $labelToShow = $directionLetter . ' ' . str_pad($this->formatBytes($trafficValue, 3), $speedLengthWithSpace);
 
@@ -717,9 +717,9 @@ class Screen
     }
 
     /**
-     * Returns a formatted string with devices data.
+     * Returns a formatted string with devices' data.
      *
-     * This method generates a string representation of devices information, including WAN and LAN ports,
+     * This method generates a string representation of devices' information, including WAN and LAN ports,
      * CPU temperature, CPU load, memory usage, uptime, and traffic statistics.
      *
      * @param array $hardware The array containing hardware data for devices.
@@ -922,11 +922,10 @@ class Screen
     }
 
     /**
-     * Returns a colored text string.
+     * Converts a port state to a colored label string.
      *
-     * @param string $text The text to color.
-     * @param string $color The color code.
-     * @return string The colored text.
+     * @param string $portState The port state code.
+     * @return string The corresponding colored label.
      */
     private function portStateToColoredLabel(string $portState): string
     {

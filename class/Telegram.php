@@ -93,15 +93,15 @@ class Telegram
     }
 
     /**
-     * Sends a message to the configured Telegram chat.
+     * Sends a message to the specified Telegram chat.
      *
-     * This method uses Telegram's Bot API to send a message to the specified chat ID.
-     * It returns true if the message was sent successfully, or false if Telegram messaging is disabled
+     * This method uses Telegram's Bot API to send a message to a chat.
+     * It returns the message ID if successful, or false if Telegram messaging is disabled
      * or if the bot token or chat ID is not set.
      *
-     * @param string $message The message to be sent.
+     * @param string $message The message text to be sent.
      * @param string $parseMode The parse mode for the message (default is 'Markdown').
-     * @return bool True if the message was sent successfully, false otherwise.
+     * @return bool|int Returns the message ID on success, false on failure.
      */
     public function sendMessage(string $message, string $parseMode = 'Markdown'): bool|int
     {
