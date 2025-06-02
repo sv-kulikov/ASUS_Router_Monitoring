@@ -786,7 +786,7 @@ class Router
                 */
 
                 // Clients count NEW approach. More accurate, yet more complex.
-                $cleanedClientsData = $this->getCleanedClientsData($hardwareData['hooksResults']['get_clientlist()']['get_clientlist']);
+                $cleanedClientsData = $this->getCleanedClientsData($hardwareData['hooksResults']['get_clientlist()']['get_clientlist'], $hardwareName);
                 $hardwareData['clientsCount'] = $cleanedClientsData['totalOnline'] ?? 0;
                 $hardwareData['clientsCountWired'] = $cleanedClientsData['wiredOnline'] ?? 0;
                 $hardwareData['clientsCountWifi'] = $cleanedClientsData['wifiOnline'] ?? 0;
@@ -869,7 +869,7 @@ class Router
      * @param array $clients An associative array of clients with MAC addresses as keys.
      * @return array An array containing counts of online clients and a formatted list of clients.
      */
-    public function getCleanedClientsData(array $clients): array
+    public function getCleanedClientsData(array $clients, string $hardwareName): array
     {
         $totalOnline = 0;
         $wiredOnline = 0;
@@ -887,6 +887,7 @@ class Router
             $connectionType = $this->detectClientConnectionType((int)($info['isWL'] ?? -1));
 
             $beautifiedClient = [
+                'Hardware' => $hardwareName,
                 'MAC' => $mac,
                 'IP' => $info['ip'] ?? 'N/A',
                 'Connection' => $connectionType['real_type'],
@@ -910,7 +911,7 @@ class Router
                 if ($beautifiedClient['isWired']) {
                     $beautifiedClient['isWiFi'] = true;
                     $beautifiedClient['isWired'] = false;
-                    $beautifiedClient['Connection'] = 'WiFi 2.4/5';
+                    $beautifiedClient['Connection'] = 'WiFiS'; // WiFi 2/5
                 }
             }
 
@@ -948,8 +949,8 @@ class Router
     {
         return match ($isWL) {
             0 => ['real_type' => 'Wired', 'is_wired' => true, 'is_wifi' => false],
-            1 => ['real_type' => 'WiFi 2.4/5', 'is_wired' => false, 'is_wifi' => true],
-            2 => ['real_type' => 'WiFi 6+', 'is_wired' => false, 'is_wifi' => true],
+            1 => ['real_type' => 'WiFiS', 'is_wired' => false, 'is_wifi' => true], // WiFi 2/5
+            2 => ['real_type' => 'WiFi6', 'is_wired' => false, 'is_wifi' => true],
             3 => ['real_type' => 'Guest WiFi', 'is_wired' => false, 'is_wifi' => true],
             default => ['real_type' => 'Unknown', 'is_wired' => false, 'is_wifi' => false],
         };

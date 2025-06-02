@@ -164,6 +164,23 @@ class Logger
     }
 
 
+    /**
+     * Logs debug data to a specified file.
+     *
+     * @param string $fileName The name of the file to log data to.
+     * @param mixed $data The data to log, can be a string, array, or object.
+     */
+    public function logDebug(string $fileName, mixed $data): void
+    {
+        if (is_array($data)) {
+            $data = print_r($data, true);
+        } elseif (is_object($data)) {
+            $data = json_encode($data, JSON_PRETTY_PRINT);
+        }
+
+        file_put_contents($fileName, $data, FILE_APPEND);
+    }
+
     /** Generates a formatted HTML string for logging network data to Telegram.
      *
      * @param array $providers Array of provider data.
@@ -235,7 +252,16 @@ class Logger
 
             foreach ($device['clientsList'] as $client) {
                 if ($client['isOnline']) {
-                    $combinedClientsData[$client['MAC']] = $client;
+                    if (!isset($combinedClientsData[$client['MAC']])) {
+                        // First occurrence of this MAC address.
+                        // Maybe the client is connected to just one device.
+                        $combinedClientsData[$client['MAC']] = $client;
+                    } else {
+                        // The client is already in the list,
+                        // so it is connected to multiple devices.
+                        $client["Hardware"] = "*";
+                        $combinedClientsData[$client['MAC']] = $client;
+                    }
                 }
             }
 
@@ -246,10 +272,25 @@ class Logger
         });
 
         $html .= "\n";
-        $html .= "IP              Connection Name\n";
+        $html .= "IP             Connection     Name\n";
         foreach ($combinedClientsData as $client) {
-            $ip = str_pad($client['IP'], 16);
-            $type = str_pad($client['Connection'], 11);
+            $ip = str_pad($client['IP'], 15);
+            $connection = $client['Connection'];
+
+            if ($client['Hardware'] === "router") {
+                $connection = "[R] " . $connection;
+            } elseif ($client['Hardware'] === "repeater") {
+                $connection = "[r] " . $connection;
+            } elseif ($client['Hardware'] === "*") {
+                $connection = "[*] " . $connection; // Multiple devices
+            }
+
+            if (isset($client['WiFiConnectionTime']) && $client['WiFiConnectionTime'] != '') {
+                $connection = $connection . ' ' . $this->formatConnectionTime($client['WiFiConnectionTime']);
+            }
+
+            $connection = str_pad($connection, 15);
+
             $name = str_pad($client['Name'], 20);
             if ($client['NickName'] != '') {
                 $name = str_pad($client['NickName'], 20);
@@ -274,12 +315,34 @@ class Logger
                 $name = str_pad("HiddenInDemoMode", 16);
             }
 
-            $html .= $ip . $type . $name . "\n";
+            $html .= $ip . $connection . $name . "\n";
         }
 
         $html .= "</pre>";
-        return $html;
 
+        return $html;
+    }
+
+    /**
+     * Formats a connection time string (HH:MM:SS) into a compactified format.
+     *
+     * @param string $timeStr The connection time in HH:MM:SS format.
+     * @return string Formatted connection time as 'Xs', 'Xm', 'Xh', or 'Xd'.
+     */
+    function formatConnectionTime(string $timeStr): string
+    {
+        list($hours, $minutes, $seconds) = explode(':', $timeStr);
+        $totalSeconds = (int)$hours * 3600 + (int)$minutes * 60 + (int)$seconds;
+
+        if ($totalSeconds < 60) {
+            return $totalSeconds . 's';
+        } elseif ($totalSeconds < 3600) {
+            return floor($totalSeconds / 60) . 'm';
+        } elseif ($totalSeconds < 86400) { // less than 24 hours
+            return floor($totalSeconds / 3600) . 'h';
+        } else {
+            return floor($totalSeconds / 86400) . 'd';
+        }
     }
 
 
