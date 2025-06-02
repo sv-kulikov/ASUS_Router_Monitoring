@@ -419,20 +419,20 @@ class Screen
                     $providerNameWithData = rtrim($providerNameWithData, ', ');
                 }
                 if ($this->logger->getLastExceptionDateTimeAsString() !== '') {
-                    $providerNameWithData .= $this->getColoredText(' (Exc: ' . $this->logger->getLastExceptionDateTimeAsString() . ')', Color::LIGHT_YELLOW);
+                    $providerNameWithData .= $this->getColoredText(' (Exc!)', Color::LIGHT_YELLOW);
                 }
                 if ($this->config['telegram']['telegramStatusEnabled'] === 'Y') {
+                    $providerNameWithData .= " [";
+
                     if ($this->telegram->getLastFailureTimestamp() > 0) {
                         $failureDateTime = $this->getColoredText(date('d.m H:i', $this->telegram->getLastFailureTimestamp()), Color::LIGHT_RED);
-                    } else {
-                        $failureDateTime = $this->getColoredText('--.-- --:--', Color::LIGHT_GRAY);
+                        $providerNameWithData .= " [" . $failureDateTime . "|";
                     }
                     if ($this->telegram->getLastSuccessTimestamp() > 0) {
                         $successDateTime = $this->getColoredText(date('d.m H:i', $this->telegram->getLastSuccessTimestamp()), Color::LIGHT_GREEN);
-                    } else {
-                        $successDateTime = $this->getColoredText('--.-- --:--', Color::LIGHT_GRAY);
+                        $providerNameWithData .= $successDateTime;
                     }
-                    $providerNameWithData .= " [" . $failureDateTime . "|" . $successDateTime . "]";
+                    $providerNameWithData .= "]";
                 }
             }
 
