@@ -5,8 +5,10 @@ namespace Sv\Network\VmsRtbw;
 use phpseclib3\Net\SSH2;
 use Exception;
 
-/**
- * Class Connection provides methods to establish an SSH connection.
+/*
+ * Class Connection provides methods to establish an SSH connection to a router.
+ *
+ * This class uses the phpseclib library to handle SSH connections and login.
  */
 class Connection
 {

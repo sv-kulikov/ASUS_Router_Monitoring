@@ -5,7 +5,10 @@ namespace Sv\Network\VmsRtbw;
 use DateTime;
 
 /**
- * Class Screen provides methods to draw the main screen of the application.
+ * Class Screen provides methods to handle terminal screen parameters and display formatted output.
+ *
+ * This class is responsible for detecting screen dimensions, formatting text with colors,
+ * and generating visual representations of network speeds and provider statuses.
  */
 class Screen
 {
@@ -82,20 +85,6 @@ class Screen
     private Telegram $telegram;
 
     /**
-     * @var int The timestamp of the last Telegram update.
-     *
-     * This is used to track the last time an update was sent to Telegram, ensuring that updates are sent at appropriate intervals.
-     */
-    private int $lastTelegramUpdateTimestamp = 0;
-
-    /**
-     * @var int The message ID of the last statistics message sent to Telegram.
-     *
-     * This is used to update the message later, allowing for real-time updates without creating new messages.
-     */
-    private int $lastStatisticsMsgId = 0;
-
-    /**
      * Screen constructor.
      *
      * Initializes the screen with configuration, logger, and Telegram objects.
@@ -110,7 +99,6 @@ class Screen
         $this->config = $config->getConfigData();
         $this->logger = $logger;
         $this->telegram = $telegram;
-        $this->lastTelegramUpdateTimestamp = time();
     }
 
     /**
@@ -133,7 +121,9 @@ class Screen
         if (strlen($screenInfo) > 5) {
             preg_match('/CON.*:(\n[^|]+?){3}(?<cols>\d+)/', $screenInfo, $screenWidthInfoArray);
             preg_match('/CON.*:(\n[^|]+?){2}(?<lines>\d+)/', $screenInfo, $screenHeightInfoArray);
-            $this->screenWidth = $screenWidthInfoArray['cols'] - 12 ?? $defaultScreenWidth;
+            $this->screenWidth = isset($screenWidthInfoArray['cols'])
+                ? max($screenWidthInfoArray['cols'] - 12, 20)
+                : $defaultScreenWidth;
             $this->screenHeight = $screenHeightInfoArray['lines'] ?? $defaultScreenHeight;
 
             // Patch for cases when scrollable (not visible) screen height is detected.
@@ -222,12 +212,11 @@ class Screen
      */
     public function clearScreen(): void
     {
-        echo "\033[H\033[J";
+        $this->echoIfScreenIsEnabled("\033[H\033[J");
         // \033 (or \e in some environments) represents the escape character (ESC).
         // [H moves the cursor to the "home" position (top-left of the terminal).]
         // [J clears the screen from the cursor position to the end of the display.]
     }
-
 
     /**
      * Returns a bar graph representation of the speed for a given direction.
@@ -426,7 +415,7 @@ class Screen
 
                     if ($this->telegram->getLastFailureTimestamp() > 0) {
                         $failureDateTime = $this->getColoredText(date('d.m H:i', $this->telegram->getLastFailureTimestamp()), Color::LIGHT_RED);
-                        $providerNameWithData .= " [" . $failureDateTime . "|";
+                        $providerNameWithData .= $failureDateTime . "|";
                     }
                     if ($this->telegram->getLastSuccessTimestamp() > 0) {
                         $successDateTime = $this->getColoredText(date('d.m H:i', $this->telegram->getLastSuccessTimestamp()), Color::LIGHT_GREEN);
@@ -868,56 +857,35 @@ class Screen
     public function drawScreen(array $providers, array $hardware): void
     {
         // Move the cursor to the upper-left corner
-        echo chr(27) . chr(91) . 'H';
+        $this->echoIfScreenIsEnabled(chr(27) . chr(91) . 'H');
 
         // Print providers names
-        echo $this->getProvidersBar($providers, $hardware);
-        echo "\n";
+        $this->echoIfScreenIsEnabled($this->getProvidersBar($providers, $hardware));
+        $this->echoIfScreenIsEnabled("\n");
 
         // Print providers RX/TX speeds
-        echo $this->getProvidersRxTxSpeeds($providers);
-        echo "\n";
+        $this->echoIfScreenIsEnabled($this->getProvidersRxTxSpeeds($providers));
+        $this->echoIfScreenIsEnabled("\n");
 
         // Printing current MIN/MAX/AVG
         if ($this->config['settings']['showCurrentMinMaxAvg'] == 'Y') {
-            echo $this->getCurrentMinMaxAvgRxTxSpeeds($providers);
+            $this->echoIfScreenIsEnabled($this->getCurrentMinMaxAvgRxTxSpeeds($providers));
         }
 
         // Printing overall MIN/MAX/AVG
-        echo $this->getCumulativeMinMaxAvgRxTxSpeeds($providers);
+        $this->echoIfScreenIsEnabled($this->getCumulativeMinMaxAvgRxTxSpeeds($providers));
 
         // Printing overall traffic
-        echo $this->getCumulativeTraffic($providers, $hardware);
+        $this->echoIfScreenIsEnabled($this->getCumulativeTraffic($providers, $hardware));
 
         // Printing devices data
         if ($this->config['settings']['showDetailedDevicesData'] == 'Y') {
-            echo $this->getDevicesData($hardware);
+            $this->echoIfScreenIsEnabled($this->getDevicesData($hardware));
         }
 
         // Logging data
         if ($this->config['settings']['logData'] == 'Y') {
             $this->logger->logData($providers, $this->logData);
-        }
-
-        // Sending Telegram updates
-        if ($this->telegram->isTelegramEnabled() &&
-            $this->telegram->isTelegramRealtimeEnabled()) {
-
-            $telegramDelay = (int)$this->config['telegram']['telegramStatusPeriod'] ?? 60;
-
-            if ($this->lastStatisticsMsgId === 0 || (time() - $this->lastTelegramUpdateTimestamp > $telegramDelay)) {
-                $this->lastTelegramUpdateTimestamp = time();
-                $message = $this->logger->getPrettyTelegramLogData($providers, $hardware);
-                if ($this->lastStatisticsMsgId === 0) {
-                    $msgId = $this->telegram->sendMessage($message, "HTML");
-                    if ($msgId !== false) {
-                        $this->telegram->setRealtimeStatsMsgId($msgId);
-                        $this->lastStatisticsMsgId = $msgId;
-                    }
-                } else {
-                    $this->telegram->editMessage($this->lastStatisticsMsgId, $message, "HTML");
-                }
-            }
         }
     }
 
@@ -957,6 +925,21 @@ class Screen
             'X' => '----',
             default => '????',
         };
+    }
+
+    /**
+     * Echoes a string if the screen is enabled.
+     *
+     * This method checks the configuration to determine if the screen should be displayed,
+     * and echoes the provided string if it is enabled.
+     *
+     * @param string $whatToEcho The string to output if the screen is enabled.
+     */
+    public function echoIfScreenIsEnabled(string $whatToEcho): void
+    {
+        if (($this->config['settings']['showScreen'] ?? '') !== 'N') {
+            echo $whatToEcho;
+        }
     }
 
 }

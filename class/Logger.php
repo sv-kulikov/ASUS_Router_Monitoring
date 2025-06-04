@@ -6,8 +6,11 @@ use RuntimeException;
 use Throwable;
 
 /**
- * Class Logger provides methods to log data to files.
- * It also handles exceptions and logs them to a file.
+ * Class Logger handles logging of network data and exceptions.
+ *
+ * This class provides methods to log provider statistics, hardware statistics,
+ * and exceptions to files. It also includes methods for checking logging settings
+ * and formatting data for display in Telegram.
  */
 class Logger
 {
@@ -120,7 +123,6 @@ class Logger
         }
     }
 
-
     /**
      * Default exception handler that logs detailed exception data to a daily file.
      *
@@ -163,7 +165,6 @@ class Logger
         return $this->lastExceptionDateTimeAsString;
     }
 
-
     /**
      * Logs debug data to a specified file.
      *
@@ -187,7 +188,7 @@ class Logger
      * @param array $hardware Array of hardware data.
      * @return string Formatted HTML string with network data.
      */
-    public function getPrettyTelegramLogData(array $providers, array $hardware): string
+    public function getPrettyTelegramLogData(array $providers, array $hardware, array $cleanedClientsList): string
     {
 
         $html = "<pre>Network: " . date("Y.m.d H:i:s") . "\n\n";
@@ -223,7 +224,7 @@ class Logger
         $txTotal = $this->formatBytes((int)$providers['TOTAL']['TXbytes']);
         $html .= str_pad('TOTAL', 11) . str_pad($rxTotal, 11) . str_pad($txTotal, 11) . "\n\n";
 
-        $combinedClientsData = [];
+        $onlineClientsData = [];
 
         // Hardware table header
         $html .= "Device     Cl CPU/C RAM/MB RAM/% Uptime\n";
@@ -249,40 +250,32 @@ class Logger
             $line .= str_pad($ramPerc . '%', 6);
             $line .= $uptime;
             $html .= $line . "\n";
-
-            foreach ($device['clientsList'] as $client) {
-                if ($client['isOnline']) {
-                    if (!isset($combinedClientsData[$client['MAC']])) {
-                        // First occurrence of this MAC address.
-                        // Maybe the client is connected to just one device.
-                        $combinedClientsData[$client['MAC']] = $client;
-                    } else {
-                        // The client is already in the list,
-                        // so it is connected to multiple devices.
-                        $client["Hardware"] = "*";
-                        $combinedClientsData[$client['MAC']] = $client;
-                    }
-                }
-            }
-
         }
 
-        uasort($combinedClientsData, function ($a, $b) {
+        foreach ($cleanedClientsList as $client) {
+            if ($client['isOnline']) {
+                $onlineClientsData[$client['MAC']] = $client;
+            }
+        }
+
+        uasort($onlineClientsData, function ($a, $b) {
             return ip2long($a['IP']) <=> ip2long($b['IP']);
         });
 
         $html .= "\n";
         $html .= "IP             Connection     Name\n";
-        foreach ($combinedClientsData as $client) {
+        foreach ($onlineClientsData as $client) {
             $ip = str_pad($client['IP'], 15);
             $connection = $client['Connection'];
 
-            if ($client['Hardware'] === "router") {
-                $connection = "[R] " . $connection;
-            } elseif ($client['Hardware'] === "repeater") {
-                $connection = "[r] " . $connection;
-            } elseif ($client['Hardware'] === "*") {
+            if (count($client['HardwareList']) > 1) {
                 $connection = "[*] " . $connection; // Multiple devices
+            } elseif (in_array('router', $client['HardwareList'])) {
+                $connection = "[R] " . $connection; // Router
+            } elseif (in_array('repeater', $client['HardwareList'])) {
+                $connection = "[r] " . $connection; // Repeater
+            } else {
+                $connection = "[?] " . $connection; // What the...
             }
 
             if (isset($client['WiFiConnectionTime']) && $client['WiFiConnectionTime'] != '') {
@@ -345,7 +338,6 @@ class Logger
         }
     }
 
-
     /**
      * Formats bytes into a human-readable string with appropriate units.
      *
@@ -353,7 +345,8 @@ class Logger
      * @param int $precision The number of decimal places to include in the formatted output.
      * @return string Formatted string with the size and unit.
      */
-    private function formatBytes(int|float $bytes, int $precision = 2): string
+    private
+    function formatBytes(int|float $bytes, int $precision = 2): string
     {
         $units = array('B', 'KB', 'MB', 'GB', 'TB');
 

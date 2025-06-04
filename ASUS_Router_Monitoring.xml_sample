@@ -44,4 +44,38 @@
         <telegramBotToken>1234567890:long_string</telegramBotToken>
         <telegramChatId>0987654321</telegramChatId>
     </telegram>
+    <clientsBasedActions>
+        <client>
+            <ip>192.168.1.10</ip>
+            <mac>11:22:33:44:55:66</mac>
+            <name>Phone-1</name>
+            <clarifyOnlineStatusByPing>Y</clarifyOnlineStatusByPing>
+            <online>
+                 <timeout>300</timeout>
+                 <telegramMessage>Phone-1 is online for {time}.</telegramMessage>
+                 <lockWorkstation>N</lockWorkstation>
+            </online>
+            <offline>
+                 <timeout>3600</timeout>
+                 <telegramMessage>Phone-1 is offline for {time}.</telegramMessage>
+                 <lockWorkstation>Y</lockWorkstation>
+            </offline>
+        </client>
+        <client>
+            <ip>192.168.1.20</ip>
+            <mac>33:44:55:66:77:88</mac>
+            <name>Phone-2</name>
+            <clarifyOnlineStatusByPing>Y</clarifyOnlineStatusByPing>
+            <online>
+                 <timeout>10</timeout>
+                 <telegramMessage>Phone-2 is online for {time}.</telegramMessage>
+                 <lockWorkstation>Y</lockWorkstation>
+            </online>
+            <offline>
+                 <timeout>300</timeout>
+                 <telegramMessage>Phone-2 is offline for {time}.</telegramMessage>
+                 <lockWorkstation>N</lockWorkstation>
+            </offline>
+        </client>
+    </clientsBasedActions>
 </config>

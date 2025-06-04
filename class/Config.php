@@ -6,8 +6,10 @@ use DateTime;
 use Exception;
 use SimpleXMLElement;
 
-/**
- * Class Config provides methods to read and manage the application configuration.
+/* * Class Config handles reading and managing configuration data from an XML file.
+ *
+ * This class provides methods to read configuration data, process command line parameters,
+ * and manage nested configuration parameters.
  */
 class Config
 {
@@ -80,6 +82,10 @@ class Config
             if ($arg === 'nologs') {
                 $this->updateNestedParameter('settings', 'logData', "N");
                 echo "Logging is turned OFF via command line parameter.\n";
+            }
+            if ($arg === 'noscreen') {
+                $this->updateNestedParameter('settings', 'showScreen', "N");
+                echo "Screen display is turned OFF via command line parameter.\n";
             }
         }
     }

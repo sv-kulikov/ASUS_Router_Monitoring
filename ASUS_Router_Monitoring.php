@@ -39,7 +39,7 @@ $logger = new Logger($config);
 set_exception_handler([$logger, 'logException']);
 
 // Initialize Telegram integration
-$telegram = new Telegram($config);
+$telegram = new Telegram($config->getConfigData(), $logger);
 
 // Initialize screen
 $screen = new Screen($config, $logger, $telegram);
@@ -101,12 +101,15 @@ if (!$keyboardEvents) {
         try {
             $worker->globalInit($router, $config, $screen, $telegram, $utilityStart);
             while (true) {
-                $worker->globalStep($router, $config, $screen);
+                $worker->globalStep($router);
             }
         } catch (Exception $e) {
             $utilityStart = true;
             $worker->refreshAfterException($screen, $config);
-            $logger->logException($e);
+
+            if (strtolower(basename($e->getFile())) !== 'ssh2.php') {
+                $logger->logException($e);
+            }
         }
     }
 } else {
@@ -144,11 +147,14 @@ if (!$keyboardEvents) {
                     $worker->globalInit($router, $config, $screen, $telegram, $utilityStart);
                 }
 
-                $worker->globalStep($router, $config, $screen);
+                $worker->globalStep($router);
             }
         } catch (Exception $e) {
             $worker->refreshAfterException($screen, $config);
-            $logger->logException($e);
+
+            if (strtolower(basename($e->getFile())) !== 'ssh2.php') {
+                $logger->logException($e);
+            }
         }
     }
 

@@ -3,7 +3,10 @@
 namespace Sv\Network\VmsRtbw;
 
 /**
- * Telegram is a utility class for sending messages via Telegram's Bot API.
+ * Class Telegram handles sending messages to a Telegram chat using the Bot API.
+ *
+ * This class provides methods to send messages, edit existing messages, and manage
+ * Telegram messaging settings such as enabling/disabling messaging and real-time updates.
  */
 class Telegram
 {
@@ -42,13 +45,6 @@ class Telegram
     private string $telegramChatId;
 
     /**
-     * @var int The message ID of the last sent realtime statistics message.
-     *
-     * This is used to update the message later.
-     */
-    private int $realtimeStatsMsgId = 0;
-
-    /**
      * @var int Timestamp of the last successful message sent.
      *
      * This is used to track the last successful message sent to Telegram.
@@ -70,15 +66,46 @@ class Telegram
     private string $logFileName = '';
 
     /**
+     * @var int The message ID of the last statistics message sent to Telegram.
+     *
+     * This is used to update the message later, allowing for real-time updates without creating new messages.
+     */
+    private int $lastStatisticsMsgId = 0;
+
+    /**
+     * @var int The timestamp of the last Telegram update.
+     *
+     * This is used to track the last time an update was sent to Telegram, ensuring that updates are sent at appropriate intervals.
+     */
+    private int $lastTelegramUpdateTimestamp = 0;
+
+    /**
+     * @var Logger The logger object for logging messages.
+     *
+     * This object is used to log messages related to Telegram operations, such as sending messages or errors.
+     */
+    private Logger $logger;
+
+    /**
+     * @var array Configuration settings.
+     *
+     * This array holds the configuration settings for Telegram, such as whether messaging is enabled,
+     * the bot token, chat ID, and other related settings.
+     */
+    private array $config = [];
+
+    /**
      * Constructor for the Telegram class.
      *
      * Initializes the Telegram messaging settings based on the provided configuration object.
      *
      * @param Config $configObject Configuration object containing Telegram settings.
      */
-    public function __construct(Config $configObject)
+    public function __construct(array $config, Logger $logger)
     {
-        $config = $configObject->getConfigData();
+        $this->logger = $logger;
+        $this->config = $config;
+        $this->lastTelegramUpdateTimestamp = time();
 
         $this->telegramEnabled = ($config['telegram']['telegramEnabled'] ?? 'N') === 'Y';
         $this->telegramRealtimeEnabled = ($config['telegram']['telegramRealtimeEnabled'] ?? 'N') === 'Y';
@@ -136,7 +163,7 @@ class Telegram
             return $messageId;
         } else {
             $this->lastFailureTimestamp = time();
-            if ($this->logFileName !='') {
+            if ($this->logFileName != '') {
                 $logMessage = date('Y.m.d H:i:s') . " - Failed to send message, response is: $response\n";
                 file_put_contents($this->logFileName, $logMessage, FILE_APPEND);
             }
@@ -187,7 +214,7 @@ class Telegram
             return true;
         } else {
             $this->lastFailureTimestamp = time();
-            if ($this->logFileName !='') {
+            if ($this->logFileName != '') {
                 $logMessage = date('Y.m.d H:i:s') . " - Failed to edit message, response is: $response\n";
                 file_put_contents($this->logFileName, $logMessage, FILE_APPEND);
             }
@@ -196,13 +223,12 @@ class Telegram
 
     }
 
-
     /**
      * Checks whether Telegram messaging is enabled.
      *
      * @return bool True if Telegram messaging is enabled, false otherwise.
      */
-    public function isTelegramEnabled() : bool
+    public function isTelegramEnabled(): bool
     {
         return $this->telegramEnabled;
     }
@@ -212,35 +238,9 @@ class Telegram
      *
      * @return bool True if realtime updates are enabled, false otherwise.
      */
-    public function isTelegramRealtimeEnabled() : bool
+    public function isTelegramRealtimeEnabled(): bool
     {
         return $this->telegramRealtimeEnabled;
-    }
-
-    /**
-     * Gets the id of the realtime update message.
-     *
-     * This method returns the message ID of the realtime statistics message
-     * previously sent to Telegram, which can be used for updating or deleting the message.
-     *
-     * @return int The id of the realtime update message.
-     */
-    public function getRealtimeStatsMsgId(): int
-    {
-        return $this->realtimeStatsMsgId;
-    }
-
-    /**
-     * Sets the id of the realtime update message.
-     *
-     * This method is used to store the message ID of the realtime statistics message
-     * sent to Telegram, allowing for future updates or deletions.
-     *
-     * @param int $realtimeStatsMsgId The id of the realtime update message.
-     */
-    public function setRealtimeStatsMsgId(int $realtimeStatsMsgId): void
-    {
-        $this->realtimeStatsMsgId = $realtimeStatsMsgId;
     }
 
     /**
@@ -266,4 +266,39 @@ class Telegram
     {
         return $this->lastFailureTimestamp;
     }
+
+    /**
+     * Makes updates to Telegram with the current statistics.
+     *
+     * This method checks if Telegram is enabled and if real-time updates are allowed.
+     * If so, it sends or edits a message with the current statistics at specified intervals.
+     *
+     * Important: this action is dependent on $providers and $hardware data,
+     * so it MUST be called after drawScreen(), so all data is prepared.
+     *
+     * @param array $providers Array of provider data, including IP, status, traffic, and flags.
+     * @param array $hardware Array of hardware metrics per device (router/repeater).
+     */
+    public function makeTelegramUpdates(array $providers, array $hardware, array $cleanedClientsList): void
+    {
+        if ($this->isTelegramEnabled() &&
+            $this->isTelegramRealtimeEnabled()) {
+
+            $telegramDelay = (int)$this->config['telegram']['telegramStatusPeriod'] ?? 60;
+
+            if ($this->lastStatisticsMsgId === 0 || (time() - $this->lastTelegramUpdateTimestamp > $telegramDelay)) {
+                $this->lastTelegramUpdateTimestamp = time();
+                $message = $this->logger->getPrettyTelegramLogData($providers, $hardware, $cleanedClientsList);
+                if ($this->lastStatisticsMsgId === 0) {
+                    $msgId = $this->sendMessage($message, "HTML");
+                    if ($msgId !== false) {
+                        $this->lastStatisticsMsgId = $msgId;
+                    }
+                } else {
+                    $this->editMessage($this->lastStatisticsMsgId, $message, "HTML");
+                }
+            }
+        }
+    }
+
 }

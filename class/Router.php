@@ -7,8 +7,10 @@ use Exception;
 use phpseclib3\Net\SSH2;
 
 /**
- * Class Router manages the SSH connections to the router and repeater,
- * retrieves and processes network data, and provides methods for statistics.
+ * Class Router provides methods to manage and retrieve data from a network router and repeater.
+ *
+ * This class handles SSH connections to the router and repeater, retrieves network statistics,
+ * manages provider data, and integrates with Telegram for notifications.
  */
 class Router
 {
@@ -112,6 +114,21 @@ class Router
     private Telegram $telegram;
 
     /**
+     * @var array Clients data containing information about connected clients.
+     *            Structure: [clientMac => [key => value, ...]]
+     *            This is used to store detailed information about each connected client.
+     */
+    private array $clientsData = [];
+
+    /**
+     * @var array Combined clients data containing merged information from both router and repeater.
+     *            Structure: [clientMac => [key => value, ...]]
+     *            This is used to combine client data from both devices into a single array.
+     */
+    private array $combinedClientsData = [];
+
+
+    /**
      * Initializes the Router object with connections to the router and repeater,
      * and sets up the configuration and Telegram integration.
      *
@@ -186,7 +203,6 @@ class Router
         }
         $this->lastRefreshTime = microtime(true);
     }
-
 
     /**
      * Refreshes network adapter statistics by retrieving and parsing interface data via SSH
@@ -374,7 +390,6 @@ class Router
         $this->providersData['TOTAL']['TXbytesOnStart'] = $this->providersData['TOTAL']['TXbytes'];
     }
 
-
     /**
      * Updates real-time traffic and IP tracking data for each VPN provider and the total aggregate.
      *
@@ -473,7 +488,6 @@ class Router
             }
         }
     }
-
 
     /**
      * Calculates per-provider and global traffic statistics based on recent data samples.
@@ -614,7 +628,6 @@ class Router
 
     }
 
-
     /**
      * Checks if a given adapter name is present in the configuration providers list.
      *
@@ -631,7 +644,6 @@ class Router
         }
         return false;
     }
-
 
     /**
      * Collects and updates hardware-level diagnostics and statistics for both router and repeater devices.
@@ -786,7 +798,8 @@ class Router
                 */
 
                 // Clients count NEW approach. More accurate, yet more complex.
-                $cleanedClientsData = $this->getCleanedClientsData($hardwareData['hooksResults']['get_clientlist()']['get_clientlist'], $hardwareName);
+                $this->updateAndCollectCleanedClientsData($hardwareData['hooksResults']['get_clientlist()']['get_clientlist'], $hardwareName);
+                $cleanedClientsData = $this->getCleanedClientsData($hardwareName);
                 $hardwareData['clientsCount'] = $cleanedClientsData['totalOnline'] ?? 0;
                 $hardwareData['clientsCountWired'] = $cleanedClientsData['wiredOnline'] ?? 0;
                 $hardwareData['clientsCountWifi'] = $cleanedClientsData['wifiOnline'] ?? 0;
@@ -867,9 +880,10 @@ class Router
      * for easier consumption.
      *
      * @param array $clients An associative array of clients with MAC addresses as keys.
-     * @return array An array containing counts of online clients and a formatted list of clients.
+     * @param string $hardwareName
+     * @return void An array containing counts of online clients and a formatted list of clients.
      */
-    public function getCleanedClientsData(array $clients, string $hardwareName): array
+    public function updateAndCollectCleanedClientsData(array $clients, string $hardwareName): void
     {
         $totalOnline = 0;
         $wiredOnline = 0;
@@ -877,6 +891,8 @@ class Router
         $totalOffline = 0;
 
         $beautifiedClients = [];
+
+        $configClientActions = $this->config['clientsBasedActions']['client'] ?? [];
 
         foreach ($clients as $mac => $info) {
 
@@ -930,13 +946,114 @@ class Router
             }
         }
 
-        return [
+        foreach ($beautifiedClients as $client) {
+            $hardwareListAsArray = [];
+            $onlineStatusChangesArray = [
+                'firstSeenOnline' => -1,
+                'firstSeenOffline' => -1,
+                'lastSeenOnline' => -1,
+                'lastSeenOffline' => -1,
+                'offlineFor' => -1,
+                'onlineFor' => -1,
+                'offlineActionsPerformedAt' => -1,
+                'onlineActionsPerformedAt' => -1,
+            ];
+
+            if (isset($this->combinedClientsData[$client['MAC']])) {
+                $hardwareListAsArray = $this->combinedClientsData[$client['MAC']]['HardwareList'] ?? [];
+                $onlineStatusChangesArray = $this->combinedClientsData[$client['MAC']]['OnlineStatusChanges'] ?? [];
+            }
+
+            if (!in_array($hardwareName, $hardwareListAsArray)) {
+                $hardwareListAsArray[] = $hardwareName;
+            }
+
+            $client['HardwareList'] = $hardwareListAsArray;
+
+            $clientActions = $this->findClientActions($configClientActions,
+                $client['MAC'],
+                $client['IP'],
+                $client['Name'],
+                $client['NickName']
+            );
+
+            if (!empty($clientActions)) {
+                if (($clientActions['clarifyOnlineStatusByPing'] ?? '') === 'Y') {
+                    $client['isOnline'] = $this->isDeviceOnlineByPing($client['IP']);
+                    if ($client['isWiFi'] && (($onlineStatusChangesArray['firstSeenOnline'] ?? -1) != -1)) {
+                        $looksLikeTheDeviceIsOnlineFor = time() - ($onlineStatusChangesArray['firstSeenOnline'] ?? 0);
+                        $routerSaysThatTheDeviceIsOnlineFor = $this->parseHMSToSeconds($client['WiFiConnectionTime'] ?? '0:00:00');
+
+                        if ($looksLikeTheDeviceIsOnlineFor > $routerSaysThatTheDeviceIsOnlineFor) {
+                            $client['WiFiConnectionTime'] = $this->formatSecondsToHMS($looksLikeTheDeviceIsOnlineFor);
+                        }
+                    }
+                }
+            }
+
+            if ((bool)$client['isOnline']) {
+                if (($onlineStatusChangesArray['firstSeenOnline'] ?? -1) == -1) {
+                    $onlineStatusChangesArray['firstSeenOnline'] = time();
+                }
+                if (($onlineStatusChangesArray['lastSeenOffline'] ?? -1) == -1) {
+                    $onlineStatusChangesArray['lastSeenOffline'] = time();
+                }
+                if (($onlineStatusChangesArray['onlineFor'] ?? -1) == -1) {
+                    $onlineStatusChangesArray['onlineFor'] = 0;
+                } else {
+                    $onlineStatusChangesArray['onlineFor'] = time() - ($onlineStatusChangesArray['firstSeenOnline'] ?? -1);
+                }
+                $onlineStatusChangesArray['offlineFor'] = -1;
+            } else {
+                if (($onlineStatusChangesArray['firstSeenOffline'] ?? -1) == -1) {
+                    $onlineStatusChangesArray['firstSeenOffline'] = time();
+                }
+                if (($onlineStatusChangesArray['lastSeenOnline'] ?? -1) == -1) {
+                    $onlineStatusChangesArray['lastSeenOnline'] = time();
+                }
+                if (($onlineStatusChangesArray['offlineFor'] ?? -1) == -1) {
+                    $onlineStatusChangesArray['offlineFor'] = 0;
+                } else {
+                    $onlineStatusChangesArray['offlineFor'] = time() - ($onlineStatusChangesArray['firstSeenOffline'] ?? -1);
+                }
+                $onlineStatusChangesArray['onlineFor'] = -1;
+            }
+            $client['OnlineStatusChanges'] = $onlineStatusChangesArray;
+
+            $this->combinedClientsData[$client['MAC']] = $client;
+        }
+
+        $this->clientsData[$hardwareName] = [
             'totalOnline' => $totalOnline,
             'wiredOnline' => $wiredOnline,
             'wifiOnline' => $wifiOnline,
             'totalOffline' => $totalOffline,
             'beautifiedClients' => $beautifiedClients,
         ];
+    }
+
+    /**
+     * Updates the action time for a client based on the action type (online/offline).
+     *
+     * This method sets the action time to the current timestamp or resets it to -1
+     * if requested. It updates the combined clients data structure accordingly.
+     *
+     * @param string $mac The MAC address of the client.
+     * @param string $actionType The type of action ('online' or 'offline').
+     * @param bool $resetActionTime Whether to reset the action time to -1.
+     */
+    public function updateClientActionTime(string $mac, string $actionType, bool $resetActionTime): void
+    {
+        $actionTime = time();
+        if ($resetActionTime) {
+            $actionTime = -1; // Reset action time to -1 if requested
+        }
+
+        if ($actionType == 'online') {
+            $this->combinedClientsData[$mac]['OnlineStatusChanges']['onlineActionsPerformedAt'] = $actionTime;
+        } elseif ($actionType == 'offline') {
+            $this->combinedClientsData[$mac]['OnlineStatusChanges']['offlineActionsPerformedAt'] = $actionTime;
+        }
     }
 
     /**
@@ -980,6 +1097,130 @@ class Router
             34 => 'Virtual Machine (Windows)',
             default => 'Unknown Type',
         };
+    }
+
+    /**
+     * Returns the collected data for clients.
+     *
+     * @return array An associative array containing client data.
+     */
+    public function getCleanedClientsData(string $hardwareName): array
+    {
+        return $this->clientsData[$hardwareName] ?? [
+            'totalOnline' => 0,
+            'wiredOnline' => 0,
+            'wifiOnline' => 0,
+            'totalOffline' => 0,
+            'beautifiedClients' => [],
+        ];
+    }
+
+    /**
+     * Returns the combined clients data across all hardware devices.
+     *
+     * This method aggregates client data from both router and repeater,
+     * allowing access to a unified view of all clients.
+     *
+     * @return array An associative array containing combined client data.
+     */
+    public function getCombinedClientsData(): array
+    {
+        return $this->combinedClientsData;
+    }
+
+    /**
+     * Checks if a given IP address is online by pinging it.
+     *
+     * This method uses the system's ping command to check if the specified IP address
+     * is reachable. It returns true if the ping is successful, indicating that the
+     * device is online, and false otherwise.
+     *
+     * @param string $ip The IP address to check.
+     * @return bool True if the device is online, false otherwise.
+     */
+    private function isDeviceOnlineByPing(string $ip): bool
+    {
+        $output = shell_exec("ping -n 1 -w 1000 $ip");
+        if (str_contains(strtolower($output), 'reply from')) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Finds client actions based on MAC, IP, name, or nickname.
+     *
+     * This method searches through the configured client actions to find a match
+     * based on the provided MAC address, IP address, name, or nickname.
+     *
+     * @param array $clientsActionsFromConfig The list of client actions from the configuration.
+     * @param string $mac The MAC address of the client.
+     * @param string $ip The IP address of the client.
+     * @param string $name The name of the client.
+     * @param string $nickName The nickname of the client.
+     * @return array The matched client actions or an empty array if not found.
+     */
+    public function findClientActions(array $clientsActionsFromConfig, string $mac, string $ip, string $name, string $nickName): array
+    {
+        $mac = strtolower(trim($mac));
+        $ip = trim($ip);
+        $name = strtolower(trim($name));
+        $nickName = strtolower(trim($nickName));
+
+        // 1. Try to find by MAC
+        foreach ($clientsActionsFromConfig as $client) {
+            if (strtolower($client['mac']) == $mac) {
+                return $client;
+            }
+        }
+
+        // 2. Try to find by IP
+        foreach ($clientsActionsFromConfig as $client) {
+            if (strtolower($client['ip']) == $ip) {
+                return $client;
+            }
+        }
+
+        // 3. Try to find by name or nickname
+        foreach ($clientsActionsFromConfig as $client) {
+            if ((strtolower($client['name']) == $name) || (strtolower($client['name']) == $nickName)) {
+                return $client;
+            }
+        }
+
+        // Not found
+        return [];
+    }
+
+    /**
+     * Formats seconds into a "router-like" string in the format "H:M:S"
+     * for $client['WiFiConnectionTime'], e.g., 999:23:56.
+     *
+     * @param int $seconds The number of seconds to format.
+     * @return string A formatted string representing the time in hours, minutes, and seconds.
+     */
+    private function formatSecondsToHMS(int $seconds): string
+    {
+        $hours = floor($seconds / 3600);
+        $minutes = floor(($seconds % 3600) / 60);
+        $secs = $seconds % 60;
+
+        return sprintf('%d:%02d:%02d', $hours, $minutes, $secs);
+    }
+
+    /**
+     * Parses a string in the format "H:M:S" and converts it to total seconds.
+     *
+     * @param string $hms The time string in the format "H:M:S".
+     * @return int The total number of seconds represented by the input string.
+     */
+    private function parseHMSToSeconds(string $hms): int
+    {
+        $parts = explode(':', $hms);
+
+        [$hours, $minutes, $seconds] = array_map('intval', $parts);
+        return ($hours * 3600) + ($minutes * 60) + $seconds;
     }
 
 }
