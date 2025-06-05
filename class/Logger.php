@@ -17,7 +17,7 @@ class Logger
     /**
      * @var array Configuration data for logging settings.
      */
-    private array $config = [];
+    private array $config;
 
     /**
      * @var string Full path to the log directory.
@@ -107,7 +107,7 @@ class Logger
                 if ($file === false) {
                     throw new RuntimeException("Failed to create log file: $fileName");
                 }
-                fputcsv($file, array_keys($data), ',', '"', '\\', PHP_EOL);
+                fputcsv($file, array_keys($data), ',', '"', '', PHP_EOL);
                 fclose($file);
             }
 
@@ -116,7 +116,7 @@ class Logger
             if ($file === false) {
                 throw new RuntimeException("Failed to open log file for writing: $fileName");
             }
-            fputcsv($file, array_values($data), ',', '"', '\\', PHP_EOL);
+            fputcsv($file, array_values($data), ',', '"', '', PHP_EOL);
             fclose($file);
         } catch (RuntimeException $e) {
             $this->logException($e);
@@ -208,7 +208,7 @@ class Logger
 
             if ($this->config['settings']['demo'] || $this->config['settings']['demo'] === 'Y') {
                 // In demo mode, hide provider names and IPs
-                $name = "Provider{$providerInDemoModeNumber}";
+                $name = "Provider" . $providerInDemoModeNumber;
                 $providerInDemoModeNumber++;
                 $ip = '***.***.***.***'; // Mask IP address
             }

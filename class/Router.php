@@ -127,7 +127,6 @@ class Router
      */
     private array $combinedClientsData = [];
 
-
     /**
      * Initializes the Router object with connections to the router and repeater,
      * and sets up the configuration and Telegram integration.
@@ -442,20 +441,20 @@ class Router
                             $localRouterAdapterDataIp = $routerAdapterData['ip'];
                             $localProviderIp = $providerData['ip'];
                             if ($this->config['settings']['demo']) {
-                                $localProviderName = "Provider$providerNumberForDemo";
+                                $localProviderName = "Provider" . $providerNumberForDemo;
                                 $localRouterAdapterDataIp = '***.***.***.***'; // In demo mode, we do not show real IPs.
                                 $localProviderIp = '***.***.***.***'; // In demo mode, we do not show real IPs.
                                 $providerNumberForDemo++;
                             }
-                            $header = "*Provider '{$localProviderName}' IP Update*";
+                            $header = "*Provider '" . $localProviderName . "' IP Update*";
                             if ($this->config['settings']['demo']) {
                                 $header .= " (Demo mode, IPs are hidden)";
                             }
                             if ($providerData['ip'] === '') {
-                                $message = "$header\n" . date("Y.m.d H:i:s") . " IP has been set to \[{$localRouterAdapterDataIp}].";
+                                $message = "$header\n" . date("Y.m.d H:i:s") . " IP has been set to \[" . $localRouterAdapterDataIp . "].";
                                 $this->telegram->sendMessage($message, 'Markdown');
                             } elseif (!$this->config['settings']['demo']) {
-                                $message = "$header\n" . date("Y.m.d H:i:s") . " IP has changed from \[{$localProviderIp}] to \[{$localRouterAdapterDataIp}].";
+                                $message = "$header\n" . date("Y.m.d H:i:s") . " IP has changed from \[" . $localProviderIp . "] to \[" . $localRouterAdapterDataIp . "].";
                                 $this->telegram->sendMessage($message, 'Markdown');
                             }
 
