@@ -174,10 +174,10 @@ class Worker
 
         foreach ($this->router->getCombinedClientsData() as $client) {
             $clientActions = $this->router->findClientActions($configClientActions,
-                $client['MAC'],
-                $client['IP'],
-                $client['Name'],
-                $client['NickName']
+                $client['MAC'] ?? '',
+                $client['IP'] ?? '',
+                $client['Name'] ?? '',
+                $client['NickName'] ?? ''
             );
 
             if (!empty($clientActions)) {
@@ -212,6 +212,7 @@ class Worker
 
                         if (($clientActions['offline']['telegramMessage'] ?? '') != '') {
                             $message = date('Y.m.d H:i:s') . " " . str_replace("{time}", $this->formatSecondsToDHIS((int)$client['OnlineStatusChanges']['offlineFor']), $clientActions['offline']['telegramMessage']);
+                            $message = str_replace("{name}", $clientActions['name'], $message);
                             $this->telegram->sendMessage($message);
                         }
 

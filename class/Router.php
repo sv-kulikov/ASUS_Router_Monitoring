@@ -884,6 +884,7 @@ class Router
      */
     public function updateAndCollectCleanedClientsData(array $clients, string $hardwareName): void
     {
+        // Initialize counters for stats
         $totalOnline = 0;
         $wiredOnline = 0;
         $wifiOnline = 0;
@@ -891,19 +892,26 @@ class Router
 
         $beautifiedClients = [];
 
+        // Retrieve predefined client actions from config
         $configClientActions = $this->config['clientsBasedActions']['client'] ?? [];
 
-        foreach ($clients as $mac => $info) {
+        foreach ($clients as $macAddress => $info) {
 
-            if (!preg_match('/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/', $mac)) {
-                continue; // Skip an entry that does not describe a client.
+            // Skip invalid MACs (not in format AA:BB:CC:DD:EE:FF)
+            if (!preg_match('/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/', $macAddress)) {
+                continue;
             }
 
+            // Determine connection type (WiFi/Wired/Unknown)
             $connectionType = $this->detectClientConnectionType((int)($info['isWL'] ?? -1));
 
-            $beautifiedClient = [
+            // Load existing client data, if any
+            $beautifiedClient = $this->combinedClientsData[$macAddress] ?? [];
+
+            // Merge in new or updated data
+            $beautifiedClient = array_merge($beautifiedClient, [
                 'Hardware' => $hardwareName,
-                'MAC' => $mac,
+                'MAC' => $macAddress,
                 'IP' => $info['ip'] ?? 'N/A',
                 'Connection' => $connectionType['real_type'],
                 'ConnectionRaw' => $info['isWL'] ?? -1,
@@ -912,7 +920,7 @@ class Router
                 'NickName' => $info['nickName'] ?? 'N/A',
                 'Type' => $this->detectClientType((int)($info['type'] ?? -1)),
                 'TypeRaw' => $info['type'] ?? -1,
-                'isOnline' => $info['isOnline'] ?? 'N/A',
+                'isOnline' => isset($info['isOnline']) && (bool)$info['isOnline'],
                 'isWiFi' => $connectionType['is_wifi'],
                 'isWired' => $connectionType['is_wired'],
                 'isGuest' => $info['isGuest'] ?? false,
@@ -920,34 +928,24 @@ class Router
                 'WiFiRX' => $info['curRx'] ?? 'N/A',
                 'WiFiTX' => $info['curTx'] ?? 'N/A',
                 'WiFiConnectionTime' => $info['wlConnectTime'] ?? 'N/A',
-            ];
+            ]);
 
-            if ((int)$beautifiedClient['RSSI'] != 0 || (int)$beautifiedClient['WiFiRX'] != 0 || (int)$beautifiedClient['WiFiTX'] != 0 || str_contains($beautifiedClient['WiFiConnectionTime'], ":")) {
+            // Heuristic to correct wrongly classified wired clients that look like WiFi
+            if (
+                (int)$beautifiedClient['RSSI'] !== 0 ||
+                (int)$beautifiedClient['WiFiRX'] !== 0 ||
+                (int)$beautifiedClient['WiFiTX'] !== 0 ||
+                str_contains($beautifiedClient['WiFiConnectionTime'], ":")
+            ) {
                 if ($beautifiedClient['isWired']) {
                     $beautifiedClient['isWiFi'] = true;
                     $beautifiedClient['isWired'] = false;
-                    $beautifiedClient['Connection'] = 'WiFiS'; // WiFi 2/5
+                    $beautifiedClient['Connection'] = 'WiFiS'; // Adjusted to probable WiFi
                 }
             }
 
-            $beautifiedClients[] = $beautifiedClient;
-
-            // Count clients
-            if ((int)$beautifiedClient['isOnline'] === 1) {
-                $totalOnline++;
-                if ($beautifiedClient['isWiFi']) {
-                    $wifiOnline++;
-                } elseif ($beautifiedClient['isWired']) {
-                    $wiredOnline++;
-                }
-            } else {
-                $totalOffline++;
-            }
-        }
-
-        foreach ($beautifiedClients as $client) {
-            $hardwareListAsArray = [];
-            $onlineStatusChangesArray = [
+            // Prepare online/offline time tracking structure
+            $onlineStatusChangesArray = $beautifiedClient['OnlineStatusChanges'] ?? [
                 'firstSeenOnline' => -1,
                 'firstSeenOffline' => -1,
                 'lastSeenOnline' => -1,
@@ -958,70 +956,113 @@ class Router
                 'onlineActionsPerformedAt' => -1,
             ];
 
-            if (isset($this->combinedClientsData[$client['MAC']])) {
-                $hardwareListAsArray = $this->combinedClientsData[$client['MAC']]['HardwareList'] ?? [];
-                $onlineStatusChangesArray = $this->combinedClientsData[$client['MAC']]['OnlineStatusChanges'] ?? [];
-            }
-
-            if (!in_array($hardwareName, $hardwareListAsArray)) {
-                $hardwareListAsArray[] = $hardwareName;
-            }
-
-            $client['HardwareList'] = $hardwareListAsArray;
-
-            $clientActions = $this->findClientActions($configClientActions,
-                $client['MAC'],
-                $client['IP'],
-                $client['Name'],
-                $client['NickName']
+            // Try to find actions configured for this client
+            $clientActions = $this->findClientActions(
+                $configClientActions,
+                $beautifiedClient['MAC'],
+                $beautifiedClient['IP'],
+                $beautifiedClient['Name'],
+                $beautifiedClient['NickName']
             );
 
+            // Apply any found actions
             if (!empty($clientActions)) {
-                if (($clientActions['clarifyOnlineStatusByPing'] ?? '') === 'Y') {
-                    $client['isOnline'] = $this->isDeviceOnlineByPing($client['IP']);
-                    if ($client['isWiFi'] && (($onlineStatusChangesArray['firstSeenOnline'] ?? -1) != -1)) {
-                        $looksLikeTheDeviceIsOnlineFor = time() - ($onlineStatusChangesArray['firstSeenOnline'] ?? 0);
-                        $routerSaysThatTheDeviceIsOnlineFor = $this->parseHMSToSeconds($client['WiFiConnectionTime'] ?? '0:00:00');
+                if ($beautifiedClient['Name'] === '') {
+                    $beautifiedClient['Name'] = $clientActions['name'];
+                }
 
-                        if ($looksLikeTheDeviceIsOnlineFor > $routerSaysThatTheDeviceIsOnlineFor) {
-                            $client['WiFiConnectionTime'] = $this->formatSecondsToHMS($looksLikeTheDeviceIsOnlineFor);
+                if ($beautifiedClient['NickName'] === '') {
+                    $beautifiedClient['NickName'] = $clientActions['name'];
+                }
+
+                // Optional ping test to verify online status
+                if (($clientActions['clarifyOnlineStatusByPing'] ?? '') === 'Y') {
+                    $beautifiedClient['isOnline'] = $this->isDeviceOnlineByPing($beautifiedClient['IP']);
+
+                    // Adjust WiFi time if the online duration exceeds the router's report
+                    if ($beautifiedClient['isWiFi'] && $onlineStatusChangesArray['firstSeenOnline'] > 0) {
+                        $actualOnline = time() - $onlineStatusChangesArray['firstSeenOnline'];
+                        $routerReported = $this->parseHMSToSeconds($beautifiedClient['WiFiConnectionTime'] ?? '0:00:00');
+
+                        if ($actualOnline > $routerReported) {
+                            $beautifiedClient['WiFiConnectionTime'] = $this->formatSecondsToHMS($actualOnline);
                         }
                     }
                 }
+
+                // Force connection type override
+                if (($clientActions['forceConnectionType'] ?? '') === 'wireless') {
+                    $beautifiedClient['isWiFi'] = true;
+                    $beautifiedClient['isWired'] = false;
+                    $beautifiedClient['Connection'] = 'WiFiS';
+
+                    // Generate synthetic WiFi connection time if missing
+                    if (($beautifiedClient['WiFiConnectionTime'] ?? '') === '') {
+                        $currentDateTime = new DateTime();
+                        $supposedOnlineTime = time() - ($onlineStatusChangesArray['firstSeenOnline'] ?? time());
+                        $routerOnlineTime = $currentDateTime->getTimestamp() - $this->hardwareData['router']['routerStartDateTime']->getTimestamp();
+                        if ($supposedOnlineTime > $routerOnlineTime) {
+                            $supposedOnlineTime = $routerOnlineTime;
+                        }
+                        $beautifiedClient['WiFiConnectionTime'] = $this->formatSecondsToHMS($supposedOnlineTime);
+                    }
+                } elseif (($clientActions['forceConnectionType'] ?? '') === 'wired') {
+                    $beautifiedClient['isWiFi'] = false;
+                    $beautifiedClient['isWired'] = true;
+                    $beautifiedClient['Connection'] = 'Wired';
+                }
             }
 
-            if ((bool)$client['isOnline']) {
-                if (($onlineStatusChangesArray['firstSeenOnline'] ?? -1) == -1) {
+            // Append this hardware to the client's known hardware list
+            $beautifiedClient['HardwareList'] = [$hardwareName];
+
+            // Track online/offline durations
+            if ($beautifiedClient['isOnline']) {
+                if ($onlineStatusChangesArray['firstSeenOnline'] === -1) {
                     $onlineStatusChangesArray['firstSeenOnline'] = time();
                 }
-                if (($onlineStatusChangesArray['lastSeenOffline'] ?? -1) == -1) {
-                    $onlineStatusChangesArray['lastSeenOffline'] = time();
-                }
-                if (($onlineStatusChangesArray['onlineFor'] ?? -1) == -1) {
-                    $onlineStatusChangesArray['onlineFor'] = 0;
-                } else {
-                    $onlineStatusChangesArray['onlineFor'] = time() - ($onlineStatusChangesArray['firstSeenOnline'] ?? -1);
-                }
+
+                $onlineStatusChangesArray['lastSeenOnline'] = time();
+                $onlineStatusChangesArray['onlineFor'] = time() - $onlineStatusChangesArray['firstSeenOnline'];
+
+                // Reset offline tracking
                 $onlineStatusChangesArray['offlineFor'] = -1;
+                $onlineStatusChangesArray['firstSeenOffline'] = -1;
+                $onlineStatusChangesArray['lastSeenOffline'] = -1;
             } else {
-                if (($onlineStatusChangesArray['firstSeenOffline'] ?? -1) == -1) {
+                if ($onlineStatusChangesArray['firstSeenOffline'] === -1) {
                     $onlineStatusChangesArray['firstSeenOffline'] = time();
                 }
-                if (($onlineStatusChangesArray['lastSeenOnline'] ?? -1) == -1) {
-                    $onlineStatusChangesArray['lastSeenOnline'] = time();
-                }
-                if (($onlineStatusChangesArray['offlineFor'] ?? -1) == -1) {
-                    $onlineStatusChangesArray['offlineFor'] = 0;
-                } else {
-                    $onlineStatusChangesArray['offlineFor'] = time() - ($onlineStatusChangesArray['firstSeenOffline'] ?? -1);
-                }
-                $onlineStatusChangesArray['onlineFor'] = -1;
-            }
-            $client['OnlineStatusChanges'] = $onlineStatusChangesArray;
 
-            $this->combinedClientsData[$client['MAC']] = $client;
+                $onlineStatusChangesArray['lastSeenOffline'] = time();
+                $onlineStatusChangesArray['offlineFor'] = time() - $onlineStatusChangesArray['firstSeenOffline'];
+
+                // Reset online tracking
+                $onlineStatusChangesArray['onlineFor'] = -1;
+                $onlineStatusChangesArray['firstSeenOnline'] = -1;
+                $onlineStatusChangesArray['lastSeenOnline'] = -1;
+            }
+
+            $beautifiedClient['OnlineStatusChanges'] = $onlineStatusChangesArray;
+
+            // Tally the counters
+            if ($beautifiedClient['isOnline']) {
+                $totalOnline++;
+                if ($beautifiedClient['isWiFi']) {
+                    $wifiOnline++;
+                } elseif ($beautifiedClient['isWired']) {
+                    $wiredOnline++;
+                }
+            } else {
+                $totalOffline++;
+            }
+
+            // Store updated client data
+            $beautifiedClients[$beautifiedClient['MAC']] = $beautifiedClient;
+            $this->combinedClientsData[$beautifiedClient['MAC']] = $beautifiedClient;
         }
 
+        // Persist final statistics and full client list for this hardware
         $this->clientsData[$hardwareName] = [
             'totalOnline' => $totalOnline,
             'wiredOnline' => $wiredOnline,
@@ -1030,6 +1071,7 @@ class Router
             'beautifiedClients' => $beautifiedClients,
         ];
     }
+
 
     /**
      * Updates the action time for a client based on the action type (online/offline).
@@ -1166,6 +1208,14 @@ class Router
         $ip = trim($ip);
         $name = strtolower(trim($name));
         $nickName = strtolower(trim($nickName));
+
+        if ($name == '') {
+            $name = 'unknown';
+        }
+
+        if ($nickName == '') {
+            $nickName = 'unknown';
+        }
 
         // 1. Try to find by MAC
         foreach ($clientsActionsFromConfig as $client) {

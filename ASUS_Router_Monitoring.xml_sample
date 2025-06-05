@@ -50,14 +50,15 @@
             <mac>11:22:33:44:55:66</mac>
             <name>Phone-1</name>
             <clarifyOnlineStatusByPing>Y</clarifyOnlineStatusByPing>
+            <forceConnectionType>wireless</forceConnectionType> <!-- wireless | wired -->
             <online>
                  <timeout>300</timeout>
-                 <telegramMessage>Phone-1 is online for {time}.</telegramMessage>
+                 <telegramMessage>'{name}' is online for {time}.</telegramMessage>
                  <lockWorkstation>N</lockWorkstation>
             </online>
             <offline>
                  <timeout>3600</timeout>
-                 <telegramMessage>Phone-1 is offline for {time}.</telegramMessage>
+                 <telegramMessage>'{name}' is offline for {time}.</telegramMessage>
                  <lockWorkstation>Y</lockWorkstation>
             </offline>
         </client>
@@ -66,14 +67,15 @@
             <mac>33:44:55:66:77:88</mac>
             <name>Phone-2</name>
             <clarifyOnlineStatusByPing>Y</clarifyOnlineStatusByPing>
+            <forceConnectionType>wired</forceConnectionType> <!-- wireless | wired -->
             <online>
                  <timeout>10</timeout>
-                 <telegramMessage>Phone-2 is online for {time}.</telegramMessage>
+                 <telegramMessage>'{name}' is online for {time}.</telegramMessage>
                  <lockWorkstation>Y</lockWorkstation>
             </online>
             <offline>
                  <timeout>300</timeout>
-                 <telegramMessage>Phone-2 is offline for {time}.</telegramMessage>
+                 <telegramMessage>'{name}' is offline for {time}.</telegramMessage>
                  <lockWorkstation>N</lockWorkstation>
             </offline>
         </client>
