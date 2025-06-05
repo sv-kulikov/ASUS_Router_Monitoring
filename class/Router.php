@@ -1000,7 +1000,7 @@ class Router
                     if (($beautifiedClient['WiFiConnectionTime'] ?? '') === '') {
                         $currentDateTime = new DateTime();
                         $supposedOnlineTime = time() - ($onlineStatusChangesArray['firstSeenOnline'] ?? time());
-                        $routerOnlineTime = $currentDateTime->getTimestamp() - $this->hardwareData['router']['routerStartDateTime']->getTimestamp();
+                        $routerOnlineTime = $currentDateTime->getTimestamp() - $this->routerStartDateTime->getTimestamp();
                         if ($supposedOnlineTime > $routerOnlineTime) {
                             $supposedOnlineTime = $routerOnlineTime;
                         }

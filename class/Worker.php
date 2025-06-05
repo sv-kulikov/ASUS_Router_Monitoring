@@ -5,7 +5,7 @@ namespace Sv\Network\VmsRtbw;
 /**
  * Class Worker
  *
- * Handles global system operations such as initialization, periodic updates,
+ * Handles global system operations such as initialization, updates,
  * exception handling, and Telegram messaging integration.
  *
  * This class manages the coordination between core components like Router,
