@@ -190,6 +190,7 @@ class Worker
 
                         if (($clientActions['online']['telegramMessage'] ?? '') != '') {
                             $message = date('Y.m.d H:i:s') . " " . str_replace("{time}", $this->formatSecondsToDHIS((int)$client['OnlineStatusChanges']['onlineFor']), $clientActions['online']['telegramMessage']);
+                            $message = str_replace("{name}", $clientActions['name'], $message);
                             $this->telegram->sendMessage($message);
                         }
 
