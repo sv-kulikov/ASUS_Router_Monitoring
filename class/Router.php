@@ -895,6 +895,9 @@ class Router
         // Retrieve predefined client actions from config
         $configClientActions = $this->config['clientsBasedActions']['client'] ?? [];
 
+        // Retrieve substitute names from config
+        $configSubstituteNames = $this->config['substituteNames']['client'] ?? [];
+
         foreach ($clients as $macAddress => $info) {
 
             // Skip invalid MACs (not in format AA:BB:CC:DD:EE:FF)
@@ -965,6 +968,12 @@ class Router
                 $beautifiedClient['NickName']
             );
 
+            // Try to find substitute name for this client
+            $clientSubstituteName = $this->findClientSubstituteName($configSubstituteNames, $beautifiedClient['MAC'], $beautifiedClient['IP']);
+            if ($clientSubstituteName !== '') {
+                $beautifiedClient['Name'] = $clientSubstituteName;
+            }
+
             // Apply any found actions
             if (!empty($clientActions)) {
                 if ($beautifiedClient['Name'] === '') {
@@ -1000,7 +1009,7 @@ class Router
                     if (($beautifiedClient['WiFiConnectionTime'] ?? '') === '') {
                         $currentDateTime = new DateTime();
                         $supposedOnlineTime = time() - ($onlineStatusChangesArray['firstSeenOnline'] ?? time());
-                        $routerOnlineTime = $currentDateTime->getTimestamp() - $this->routerStartDateTime->getTimestamp();
+                        $routerOnlineTime = $currentDateTime->getTimestamp() - ($this?->routerStartDateTime?->getTimestamp() ?? 0);
                         if ($supposedOnlineTime > $routerOnlineTime) {
                             $supposedOnlineTime = $routerOnlineTime;
                         }
@@ -1014,7 +1023,9 @@ class Router
             }
 
             // Append this hardware to the client's known hardware list
-            $beautifiedClient['HardwareList'] = [$hardwareName];
+            if (!in_array($hardwareName, ($beautifiedClient['HardwareList'] ?? []))) {
+                $beautifiedClient['HardwareList'][] = $hardwareName;
+            }
 
             // Track online/offline durations
             if ($beautifiedClient['isOnline']) {
@@ -1241,6 +1252,42 @@ class Router
         // Not found
         return [];
     }
+
+
+    /**
+     * Finds a substitute name for a client based on MAC or IP.
+     *
+     * This method searches through the configured fixed client names to find a match
+     * based on the provided MAC address or IP address. If a match is found, it returns
+     * the corresponding name; otherwise, it returns an empty string.
+     *
+     * @param array $fixClientsNamesFromConfig The list of fixed client names from the configuration.
+     * @param string $mac The MAC address of the client.
+     * @param string $ip The IP address of the client.
+     * @return string The substitute name if found, otherwise an empty string.
+     */
+    public function findClientSubstituteName(array $fixClientsNamesFromConfig, string $mac, string $ip): string
+    {
+        $mac = strtolower(trim($mac));
+        $ip = trim($ip);
+
+        // 1. Try to find by MAC
+        foreach ($fixClientsNamesFromConfig as $client) {
+            if (strtolower($client['mac']) == $mac) {
+                return $client['name'] ?? '';
+            }
+        }
+
+        // 2. Try to find by IP
+        foreach ($fixClientsNamesFromConfig as $client) {
+            if ($client['ip'] == $ip) {
+                return $client['name'] ?? '';
+            }
+        }
+
+        return '';
+    }
+
 
     /**
      * Formats seconds into a "router-like" string in the format "H:M:S"

@@ -44,6 +44,18 @@
         <telegramBotToken>1234567890:long_string</telegramBotToken>
         <telegramChatId>0987654321</telegramChatId>
     </telegram>
+    <substituteNames>
+        <client>
+            <ip>192.168.1.50</ip>
+            <mac>55:66:77:88:99:00</mac>
+            <name>Client-X1</name>
+        </client>
+        <client>
+            <ip>192.168.1.60</ip>
+            <mac>55:66:77:88:99:11</mac>
+            <name>Client-X2</name>
+        </client>
+    </substituteNames>
     <clientsBasedActions>
         <client>
             <ip>192.168.1.10</ip>
