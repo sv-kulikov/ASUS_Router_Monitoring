@@ -1313,9 +1313,15 @@ class Router
      */
     private function parseHMSToSeconds(string $hms): int
     {
-        $parts = explode(':', $hms);
+        // Trim and split, removing any empty or non-numeric parts
+        $parts = array_map('trim', explode(':', $hms));
+        $parts = array_reverse($parts); // Start from seconds
 
-        [$hours, $minutes, $seconds] = array_map('intval', $parts);
+        // Initialize time parts
+        $seconds = isset($parts[0]) && is_numeric($parts[0]) ? (int)$parts[0] : 0;
+        $minutes = isset($parts[1]) && is_numeric($parts[1]) ? (int)$parts[1] : 0;
+        $hours   = isset($parts[2]) && is_numeric($parts[2]) ? (int)$parts[2] : 0;
+
         return ($hours * 3600) + ($minutes * 60) + $seconds;
     }
 
