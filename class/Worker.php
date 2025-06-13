@@ -46,6 +46,8 @@ class Worker
      */
     private Telegram $telegram;
 
+    private array $specialClientsStatuses = [];
+
     /**
      * Global initialization method.
      *

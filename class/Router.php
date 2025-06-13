@@ -429,8 +429,29 @@ class Router
                     $providerData['TXbytesLast'] = $providerData['TXbytes'] ?? 0;
                     $providerData['RXbytes'] = $routerAdapterData['rx'];
                     $providerData['TXbytes'] = $routerAdapterData['tx'];
-                    $providerData['RXbytesAccumulated'] += ($providerData['RXbytes'] - $providerData['RXbytesLast']);
-                    $providerData['TXbytesAccumulated'] += ($providerData['TXbytes'] - $providerData['TXbytesLast']);
+
+                    // Fix attempt to deal with ISP reconnects.
+
+                    // BEFORE:
+                    // $providerData['RXbytesAccumulated'] += ($providerData['RXbytes'] - $providerData['RXbytesLast']);
+                    // $providerData['TXbytesAccumulated'] += ($providerData['TXbytes'] - $providerData['TXbytesLast']);
+
+                    // +++ Now we calculate deltas and handle counter resets +++
+                    $rxDelta = $providerData['RXbytes'] - $providerData['RXbytesLast'];
+                    $txDelta = $providerData['TXbytes'] - $providerData['TXbytesLast'];
+
+                    if ($rxDelta < 0) {
+                        // Counter reset detected: treat as fresh start
+                        $rxDelta = $providerData['RXbytes'];
+                    }
+                    if ($txDelta < 0) {
+                        $txDelta = $providerData['TXbytes'];
+                    }
+
+                    $providerData['RXbytesAccumulated'] += $rxDelta;
+                    $providerData['TXbytesAccumulated'] += $txDelta;
+                    // +++ End of fix attempt
+
 
                     if ($providerData['ip'] != $routerAdapterData['ip']) {
                         $providerData['ipChanges']++;
@@ -534,7 +555,11 @@ class Router
         // 1st step of statistics preparation (inits)
         foreach ($this->providersData as $providerName => $providerData) {
             $speedRX = ($providerData['RXbytes'] - $providerData['RXbytesLast']) / $timeDelta;
+            if ($speedRX < 0) $speedRX = 0;
+
             $speedTX = ($providerData['TXbytes'] - $providerData['TXbytesLast']) / $timeDelta;
+            if ($speedTX < 0) $speedTX = 0;
+
             $this->providersData[$providerName]['speedRX'][] = $speedRX;
             $this->providersData[$providerName]['speedTX'][] = $speedTX;
 
@@ -1193,7 +1218,7 @@ class Router
     private function isDeviceOnlineByPing(string $ip): bool
     {
         $output = shell_exec("ping -n 1 -w 1000 $ip");
-        if (str_contains(strtolower($output), 'reply from')) {
+        if (str_contains(strtolower($output), 'TTL=')) {
             return true;
         } else {
             return false;
