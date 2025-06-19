@@ -128,6 +128,25 @@ class Router
     private array $combinedClientsData = [];
 
     /**
+     * @var Logger Logger instance for logging events and messages.
+     *            This is used to log important events, errors, and debug information.
+     */
+    private Logger $logger;
+
+    /**
+     * Router constructor.
+     *
+     * Initializes the Router object with a Logger instance.
+     *
+     * @param Logger $logger Logger instance for logging events and messages.
+     */
+    public function __construct(Logger $logger)
+    {
+        $this->logger = $logger;
+    }
+
+
+    /**
      * Initializes the Router object with connections to the router and repeater,
      * and sets up the configuration and Telegram integration.
      *
@@ -474,9 +493,11 @@ class Router
                             if ($providerData['ip'] === '') {
                                 $message = "$header\n" . date("Y.m.d H:i:s") . " IP has been set to \[" . $localRouterAdapterDataIp . "].";
                                 $this->telegram->sendMessage($message, 'Markdown');
+                                $this->logger->addInstantLogData("TGMSG = [" . $message . "]", Logger::INSTANT_LOG_EVENT_TYPE_INFO);
                             } elseif (!$this->config['settings']['demo']) {
                                 $message = "$header\n" . date("Y.m.d H:i:s") . " IP has changed from \[" . $localProviderIp . "] to \[" . $localRouterAdapterDataIp . "].";
                                 $this->telegram->sendMessage($message, 'Markdown');
+                                $this->logger->addInstantLogData("TGMSG = [" . $message . "]", Logger::INSTANT_LOG_EVENT_TYPE_WARNING);
                             }
 
                         }

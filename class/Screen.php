@@ -131,7 +131,8 @@ class Screen
                 $this->screenHeight = 36;
             }
 
-            $this->stepsToShow = floor(($this->screenHeight - 22) / 2);
+            // We need sufficient space for displaying misc stats and log.
+            $this->stepsToShow = floor(($this->screenHeight - 24) / 2);
             $this->oneProviderWidth = floor($this->screenWidth / ($providersCount + 1));
         }
     }
@@ -253,25 +254,26 @@ class Screen
     }
 
     /**
-     * Returns a line without a graph for the specified direction and speed.
+     * Returns a combined line with RX and TX speeds without the graph.
      *
-     * This method formats the speed value into a string with the direction letter
-     * and pads it to fit within the allocated width for one provider.
+     * This method generates a string that combines the RX and TX speeds with arrows,
+     * formatted speed values, and padding spaces.
      *
-     * @param string $directionLetter The letter representing the direction (e.g., 'R' for RX, 'T' for TX).
-     * @param int|float $speedValue The speed value to format.
-     * @param int $speedLengthWithSpace The length of the speed value including space.
+     * @param string $arrowR The arrow symbol for RX direction.
+     * @param string $arrowT The arrow symbol for TX direction.
+     * @param int|float $speedValueR The RX speed value.
+     * @param int|float $speedValueT The TX speed value.
      * @param int $paddingSpaces The number of spaces to pad after the line.
-     * @param Color $color The color to apply to the text.
-     * @return string The formatted line without a graph.
+     * @return string The formatted combined line without the graph.
      */
-    private function getLineWithoutGraph(string $directionLetter, int|float $speedValue, int $speedLengthWithSpace, int $paddingSpaces, Color $color): string
+    private function getCombinedLineWithoutGraph(string $arrowR, string $arrowT, int|float $speedValueR, int|float $speedValueT, int $paddingSpaces): string
     {
-        $labelToShow = $directionLetter . ' ' . str_pad($this->formatBytes($speedValue) . '/s', $speedLengthWithSpace);
-        $labelToShow = str_pad($labelToShow, $this->oneProviderWidth);
-
-        return $this->getColoredText($labelToShow, $color) .
-            str_repeat(' ', $paddingSpaces);
+        $labelToShow = $arrowR . $this->getColoredText(str_pad('R' . ' ' . $this->formatBytes($speedValueR) . '/s', (int)($this->oneProviderWidth / 2.5)), Color::LIGHT_MAGENTA);
+        $labelToShow .= "  " . $arrowT . $this->getColoredText(str_pad('T' . ' ' . $this->formatBytes($speedValueT) . '/s', (int)($this->oneProviderWidth / 2.5)), Color::LIGHT_CYAN);
+        $labelToShowNoANSILength = mb_strlen(preg_replace('/\e\[[0-9;]*m/', '', $labelToShow), 'UTF-8');
+        $labelToShow .= str_repeat(" ", $this->oneProviderWidth - $labelToShowNoANSILength + 1);
+        $labelToShow .= str_repeat(' ', $paddingSpaces);
+        return $labelToShow;
     }
 
     /**
@@ -308,6 +310,44 @@ class Screen
         $labelToShow = str_pad($labelToShow, $this->oneProviderWidth);
 
         return $this->getColoredText($labelToShow, $color) . str_repeat(' ', $paddingSpaces);
+    }
+
+    private function getInstantLog() : string
+    {
+        $instantLogAsText = str_repeat(' ', $this->screenWidth + Screen::TIME_STAMP_LENGTH_WITH_SPACE + 1);
+        $instantLogAsText .= "\n";
+        $instantLogAsText .= str_repeat(' ', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1);
+        $instantLogAsText .= $this->getStatsLabelLine('Instant log');
+        $instantLogAsText .= "\n";
+
+        foreach ($this->logger->getInstantLogData() as $instantLogEvent) {
+            $instantLogAsText .= $this->getColoredText(date('H:i:s', $instantLogEvent['timestamp']), Color::LIGHT_GRAY) . ' ';
+            switch ($instantLogEvent['eventType']) {
+                case Logger::INSTANT_LOG_EVENT_TYPE_INFO:
+                    $color = Color::GREEN;
+                    break;
+                case Logger::INSTANT_LOG_EVENT_TYPE_WARNING:
+                    $color = Color::YELLOW;
+                    break;
+                case Logger::INSTANT_LOG_EVENT_TYPE_ERROR:
+                    $color = Color::RED;
+                    break;
+                case Logger::INSTANT_LOG_EVENT_TYPE_DEBUG:
+                    $color = Color::LIGHT_BLUE;
+                    break;
+                default:
+                    $color = Color::WHITE;
+                    break;
+            }
+
+            if ($this->config['settings']['demo']) {
+                $instantLogEvent['event'] = 'Demo mode. Event details are hidden.';
+            }
+            $instantLogAsText .= $this->getColoredText($instantLogEvent['event'], $color);
+            $instantLogAsText .= "\n";
+        }
+
+        return $instantLogAsText;
     }
 
     /**
@@ -592,17 +632,13 @@ class Screen
         $speedsDataAsText .= $this->getColoredText(str_pad('MIN', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1), Color::RED);
 
         foreach ($providers as $providerData) {
-            $speedsDataAsText .= $this->getArrowByValues($providerData['globalMinRXLast'], $providerData['globalMinRX']);
-            $speedsDataAsText .= $this->getLineWithoutGraph('R', $providerData['globalMinRX'], Screen::SPEED_LENGTH_WITH_SPACE, 0, Color::LIGHT_MAGENTA);
-        }
-
-        $speedsDataAsText .= "\n";
-
-        $speedsDataAsText .= str_repeat(' ', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1);
-
-        foreach ($providers as $providerData) {
-            $speedsDataAsText .= $this->getArrowByValues($providerData['globalMinTXLast'], $providerData['globalMinTX']);
-            $speedsDataAsText .= $this->getLineWithoutGraph('T', $providerData['globalMinTX'], Screen::SPEED_LENGTH_WITH_SPACE, 0, Color::LIGHT_CYAN);
+            $arrowByValueR = $this->getArrowByValues($providerData['globalMinRXLast'], $providerData['globalMinRX']);
+            $arrowByValueT = $this->getArrowByValues($providerData['globalMinTXLast'], $providerData['globalMinTX']);
+            $speedsDataAsText .= $this->getCombinedLineWithoutGraph($arrowByValueR,
+                $arrowByValueT,
+                $providerData['globalMinRX'],
+                $providerData['globalMinTX'],
+                0);
         }
 
         $speedsDataAsText .= "\n";
@@ -610,17 +646,13 @@ class Screen
         $speedsDataAsText .= $this->getColoredText(str_pad('MAX', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1), Color::GREEN);
 
         foreach ($providers as $providerData) {
-            $speedsDataAsText .= $this->getArrowByValues($providerData['globalMaxRXLast'], $providerData['globalMaxRX']);
-            $speedsDataAsText .= $this->getLineWithoutGraph('R', $providerData['globalMaxRX'], Screen::SPEED_LENGTH_WITH_SPACE, 0, Color::LIGHT_MAGENTA);
-        }
-
-        $speedsDataAsText .= "\n";
-
-        $speedsDataAsText .= str_repeat(' ', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1);
-
-        foreach ($providers as $providerData) {
-            $speedsDataAsText .= $this->getArrowByValues($providerData['globalMaxTXLast'], $providerData['globalMaxTX']);
-            $speedsDataAsText .= $this->getLineWithoutGraph('T', $providerData['globalMaxTX'], Screen::SPEED_LENGTH_WITH_SPACE, 0, Color::LIGHT_CYAN);
+            $arrowByValueR = $this->getArrowByValues($providerData['globalMaxRXLast'], $providerData['globalMaxRX']);
+            $arrowByValueT = $this->getArrowByValues($providerData['globalMaxTXLast'], $providerData['globalMaxTX']);
+            $speedsDataAsText .= $this->getCombinedLineWithoutGraph($arrowByValueR,
+                $arrowByValueT,
+                $providerData['globalMaxRX'],
+                $providerData['globalMaxTX'],
+                0);
         }
 
         $speedsDataAsText .= "\n";
@@ -628,17 +660,13 @@ class Screen
         $speedsDataAsText .= $this->getColoredText(str_pad('AVG', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1), Color::WHITE);
 
         foreach ($providers as $providerData) {
-            $speedsDataAsText .= $this->getArrowByValues($providerData['globalAvgRXLast'], $providerData['globalAvgRX']);
-            $speedsDataAsText .= $this->getLineWithoutGraph('R', $providerData['globalAvgRX'], Screen::SPEED_LENGTH_WITH_SPACE, 0, Color::LIGHT_MAGENTA);
-        }
-
-        $speedsDataAsText .= "\n";
-
-        $speedsDataAsText .= str_repeat(' ', Screen::TIME_STAMP_LENGTH_WITH_SPACE - 1);
-
-        foreach ($providers as $providerData) {
-            $speedsDataAsText .= $this->getArrowByValues($providerData['globalAvgTXLast'], $providerData['globalAvgTX']);
-            $speedsDataAsText .= $this->getLineWithoutGraph('T', $providerData['globalAvgTX'], Screen::SPEED_LENGTH_WITH_SPACE, 0, Color::LIGHT_CYAN);
+            $arrowByValueR = $this->getArrowByValues($providerData['globalAvgRXLast'], $providerData['globalAvgRX']);
+            $arrowByValueT = $this->getArrowByValues($providerData['globalAvgTXLast'], $providerData['globalAvgTX']);
+            $speedsDataAsText .= $this->getCombinedLineWithoutGraph($arrowByValueR,
+                $arrowByValueT,
+                $providerData['globalAvgRX'],
+                $providerData['globalAvgTX'],
+                0);
         }
 
         $speedsDataAsText .= "\n";
@@ -882,6 +910,9 @@ class Screen
         if ($this->config['settings']['showDetailedDevicesData'] == 'Y') {
             $this->echoIfScreenIsEnabled($this->getDevicesData($hardware));
         }
+
+        // Printing instant log
+        $this->echoIfScreenIsEnabled($this->getInstantLog());
 
         // Logging data
         if ($this->config['settings']['logData'] == 'Y') {

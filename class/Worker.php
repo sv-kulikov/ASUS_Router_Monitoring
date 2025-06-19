@@ -46,7 +46,26 @@ class Worker
      */
     private Telegram $telegram;
 
-    private array $specialClientsStatuses = [];
+    /**
+     * @var Logger The logger object for logging messages and exceptions.
+     *
+     * This object is used to log various events, errors, and informational messages
+     * throughout the application's lifecycle.
+     */
+    private Logger $logger;
+
+    /**
+     * Worker constructor.
+     *
+     * Initializes the Worker with a Logger instance for logging purposes.
+     *
+     * @param Logger $logger The logger object for logging messages and exceptions.
+     */
+    public function __construct(Logger $logger)
+    {
+        $this->logger = $logger;
+    }
+
 
     /**
      * Global initialization method.
@@ -77,7 +96,7 @@ class Worker
         $connectionToRepeater = new Connection();
 
         // Initialize the router with the necessary parameters
-        $router = new Router();
+        $router = new Router($this->logger);
         $router->init($connectionToRouter, $connectionToRepeater, $config, $screen->getStepsToShow(), $telegram);
         $router->refreshAdaptersData();
 
@@ -191,15 +210,27 @@ class Worker
                         $this->router->updateClientActionTime($client['MAC'], 'offline', true); // Reset offline action time
 
                         if (($clientActions['online']['telegramMessage'] ?? '') != '') {
-                            $message = date('Y.m.d H:i:s') . " " . str_replace("{time}", $this->formatSecondsToDHIS((int)$client['OnlineStatusChanges']['onlineFor']), $clientActions['online']['telegramMessage']);
+                            if ($this->config->isDemo()) {
+                                $message = date('Y.m.d H:i:s') . " Online action is hidden in demo mode.";
+                            } else {
+                                $message = date('Y.m.d H:i:s') . " " . str_replace("{time}", $this->formatSecondsToDHIS((int)$client['OnlineStatusChanges']['onlineFor']), $clientActions['online']['telegramMessage']);
+                            }
+
                             $message = str_replace("{name}", $clientActions['name'], $message);
                             $this->telegram->sendMessage($message);
+                            $this->logger->addInstantLogData("TGMSG = [" . $message . "]", Logger::INSTANT_LOG_EVENT_TYPE_INFO);
                         }
 
                         if (($clientActions['online']['lockWorkstation'] ?? '') == 'Y') {
                             if ($this->lockWindowsPc()) {
-                                $message = date('Y.m.d H:i:s') . " Locking PC.";
+                                if ($this->config->isDemo()) {
+                                    $message = date('Y.m.d H:i:s') . " Online action is hidden in demo mode.";
+                                } else {
+                                    $message = date('Y.m.d H:i:s') . " Locking PC.";
+                                }
+
                                 $this->telegram->sendMessage($message);
+                                $this->logger->addInstantLogData("TGMSG = [" . $message . "]", Logger::INSTANT_LOG_EVENT_TYPE_INFO);
                             }
                         }
                     }
@@ -213,15 +244,26 @@ class Worker
                         $this->router->updateClientActionTime($client['MAC'], 'online', true); // Reset online action time
 
                         if (($clientActions['offline']['telegramMessage'] ?? '') != '') {
-                            $message = date('Y.m.d H:i:s') . " " . str_replace("{time}", $this->formatSecondsToDHIS((int)$client['OnlineStatusChanges']['offlineFor']), $clientActions['offline']['telegramMessage']);
+                            if ($this->config->isDemo()) {
+                                $message = date('Y.m.d H:i:s') . " Offline action is hidden in demo mode.";
+                            } else {
+                                $message = date('Y.m.d H:i:s') . " " . str_replace("{time}", $this->formatSecondsToDHIS((int)$client['OnlineStatusChanges']['offlineFor']), $clientActions['offline']['telegramMessage']);
+                            }
+
                             $message = str_replace("{name}", $clientActions['name'], $message);
                             $this->telegram->sendMessage($message);
+                            $this->logger->addInstantLogData("TGMSG = [" . $message . "]", Logger::INSTANT_LOG_EVENT_TYPE_INFO);
                         }
 
                         if (($clientActions['offline']['lockWorkstation'] ?? '') == 'Y') {
                             if ($this->lockWindowsPc()) {
-                                $message = date('Y.m.d H:i:s') . " Locking PC.";
+                                if ($this->config->isDemo()) {
+                                    $message = date('Y.m.d H:i:s') . " Offline action is hidden in demo mode.";
+                                } else {
+                                    $message = date('Y.m.d H:i:s') . " Locking PC.";
+                                }
                                 $this->telegram->sendMessage($message);
+                                $this->logger->addInstantLogData("TGMSG = [" . $message . "]", Logger::INSTANT_LOG_EVENT_TYPE_INFO);
                             }
                         }
 

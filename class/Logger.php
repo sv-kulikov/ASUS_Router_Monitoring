@@ -15,6 +15,15 @@ use Throwable;
 class Logger
 {
     /**
+     * Constants for instant log event types.
+     * These constants are used to categorize log events.
+     */
+    public const int INSTANT_LOG_EVENT_TYPE_INFO = 1;
+    public const int INSTANT_LOG_EVENT_TYPE_WARNING = 2;
+    public const int INSTANT_LOG_EVENT_TYPE_ERROR = 3;
+    public const int INSTANT_LOG_EVENT_TYPE_DEBUG = 4;
+
+    /**
      * @var array Configuration data for logging settings.
      */
     private array $config;
@@ -30,6 +39,8 @@ class Logger
      * This is updated whenever an exception is logged.
      */
     private string $lastExceptionDateTimeAsString = '';
+
+    private array $instantLogData = [];
 
     /**
      * Logger constructor.
@@ -153,6 +164,7 @@ class Logger
         }
 
         file_put_contents($fileName, $logContent, FILE_APPEND);
+        $this->addInstantLogData("Exception in file [" . $exception->getFile() . "]", self::INSTANT_LOG_EVENT_TYPE_ERROR);
     }
 
     /**
@@ -362,6 +374,32 @@ class Logger
         }
 
         return $tmpResult . ' ' . $units[$pow];
+    }
+
+    /**
+     * Returns the instant log data.
+     *
+     * @return array The instant log data.
+     */
+    public function getInstantLogData(): array
+    {
+        return $this->instantLogData;
+    }
+
+    public function addInstantLogData(string $event, int $eventType): void
+    {
+        // Append the new event
+        $this->instantLogData[] = [
+            'timestamp' => time(),
+            'event' => str_replace(["\n", "\\["], ["["], $event),
+            'eventType' => $eventType,
+        ];
+
+        // Keep only the last four events
+        if (count($this->instantLogData) > 4) {
+            // Remove the first (oldest) event
+            array_shift($this->instantLogData);
+        }
     }
 
 }

@@ -47,7 +47,7 @@ $screen->detectScreenParameters();
 $screen->clearScreen();
 
 // Initialize worker
-$worker = new Worker();
+$worker = new Worker($logger);
 
 // Display demo mode status
 if ($demoMode) {
