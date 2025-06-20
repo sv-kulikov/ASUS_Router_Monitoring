@@ -132,6 +132,8 @@ class Worker
         $this->router->refreshProvidersData();
         $this->router->refreshHardwareData();
         $this->router->refreshStats();
+        $this->router->refreshReliableOnlineStatuses();
+        $this->router->refreshBeautifiedClients();
 
         $providersData = $this->router->getProvidersData();
         $hardwareData = $this->router->getHardwareData();
@@ -203,41 +205,43 @@ class Worker
 
             if (!empty($clientActions)) {
 
+                $isOnline = (bool)($client['isOnline'] ?? false);
+
                 // Online actions
-                if (((bool)$client['isOnline']) && ((int)$client['OnlineStatusChanges']['onlineActionsPerformedAt'] < 0)) {
+                if ($isOnline && ((int)$client['OnlineStatusChanges']['onlineActionsPerformedAt'] < 0)) {
                     if ((int)$client['OnlineStatusChanges']['onlineFor'] >= (int)$clientActions['online']['timeout']) {
                         $this->router->updateClientActionTime($client['MAC'], 'online', false);
                         $this->router->updateClientActionTime($client['MAC'], 'offline', true); // Reset offline action time
 
                         if (($clientActions['online']['telegramMessage'] ?? '') != '') {
                             if ($this->config->isDemo()) {
-                                $message = date('Y.m.d H:i:s') . " Online action is hidden in demo mode.";
+                                $message = "Online action is hidden in demo mode.";
                             } else {
-                                $message = date('Y.m.d H:i:s') . " " . str_replace("{time}", $this->formatSecondsToDHIS((int)$client['OnlineStatusChanges']['onlineFor']), $clientActions['online']['telegramMessage']);
+                                $message = str_replace("{time}", $this->formatSecondsToDHIS((int)$client['OnlineStatusChanges']['onlineFor']), $clientActions['online']['telegramMessage']);
                             }
 
                             $message = str_replace("{name}", $clientActions['name'], $message);
-                            $this->telegram->sendMessage($message);
-                            $this->logger->addInstantLogData("TGMSG = [" . $message . "]", Logger::INSTANT_LOG_EVENT_TYPE_INFO);
+                            $this->logger->addInstantLogData($message, Logger::INSTANT_LOG_EVENT_TYPE_INFO);
+                            $this->telegram->sendMessage(date('Y.m.d H:i:s') . " " . $message);
                         }
 
                         if (($clientActions['online']['lockWorkstation'] ?? '') == 'Y') {
                             if ($this->lockWindowsPc()) {
                                 if ($this->config->isDemo()) {
-                                    $message = date('Y.m.d H:i:s') . " Online action is hidden in demo mode.";
+                                    $message = "Online action is hidden in demo mode.";
                                 } else {
-                                    $message = date('Y.m.d H:i:s') . " Locking PC.";
+                                    $message = "Locking PC.";
                                 }
 
-                                $this->telegram->sendMessage($message);
-                                $this->logger->addInstantLogData("TGMSG = [" . $message . "]", Logger::INSTANT_LOG_EVENT_TYPE_INFO);
+                                $this->logger->addInstantLogData($message, Logger::INSTANT_LOG_EVENT_TYPE_INFO);
+                                $this->telegram->sendMessage(date('Y.m.d H:i:s') . " " . $message);
                             }
                         }
                     }
                 }
 
                 // Offline actions
-                if ((!(bool)$client['isOnline']) && ((int)$client['OnlineStatusChanges']['offlineActionsPerformedAt'] < 0)) {
+                if (!$isOnline && ((int)$client['OnlineStatusChanges']['offlineActionsPerformedAt'] < 0)) {
                     if ((int)$client['OnlineStatusChanges']['offlineFor'] >= (int)$clientActions['offline']['timeout']) {
 
                         $this->router->updateClientActionTime($client['MAC'], 'offline', false);
@@ -245,14 +249,14 @@ class Worker
 
                         if (($clientActions['offline']['telegramMessage'] ?? '') != '') {
                             if ($this->config->isDemo()) {
-                                $message = date('Y.m.d H:i:s') . " Offline action is hidden in demo mode.";
+                                $message = "Offline action is hidden in demo mode.";
                             } else {
-                                $message = date('Y.m.d H:i:s') . " " . str_replace("{time}", $this->formatSecondsToDHIS((int)$client['OnlineStatusChanges']['offlineFor']), $clientActions['offline']['telegramMessage']);
+                                $message = str_replace("{time}", $this->formatSecondsToDHIS((int)$client['OnlineStatusChanges']['offlineFor']), $clientActions['offline']['telegramMessage']);
                             }
 
                             $message = str_replace("{name}", $clientActions['name'], $message);
-                            $this->telegram->sendMessage($message);
-                            $this->logger->addInstantLogData("TGMSG = [" . $message . "]", Logger::INSTANT_LOG_EVENT_TYPE_INFO);
+                            $this->logger->addInstantLogData($message, Logger::INSTANT_LOG_EVENT_TYPE_INFO);
+                            $this->telegram->sendMessage(date('Y.m.d H:i:s') . " " . $message);
                         }
 
                         if (($clientActions['offline']['lockWorkstation'] ?? '') == 'Y') {
@@ -263,7 +267,7 @@ class Worker
                                     $message = date('Y.m.d H:i:s') . " Locking PC.";
                                 }
                                 $this->telegram->sendMessage($message);
-                                $this->logger->addInstantLogData("TGMSG = [" . $message . "]", Logger::INSTANT_LOG_EVENT_TYPE_INFO);
+                                $this->logger->addInstantLogData("Locking PC.", Logger::INSTANT_LOG_EVENT_TYPE_INFO);
                             }
                         }
 

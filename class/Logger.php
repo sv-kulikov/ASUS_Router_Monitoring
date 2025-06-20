@@ -386,6 +386,12 @@ class Logger
         return $this->instantLogData;
     }
 
+    /**
+     * Adds a new event to the instant log data.
+     *
+     * @param string $event The event message to log.
+     * @param int $eventType The type of the event (e.g., info, warning, error).
+     */
     public function addInstantLogData(string $event, int $eventType): void
     {
         // Append the new event

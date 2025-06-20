@@ -1,0 +1,35 @@
+1. Make script executable
+
+chmod +x mac_ip_server_3_8_10_ubuntu_20.py
+
+2. Create a service unit file
+
+sudo nano /etc/systemd/system/macipserver.service
+
+Paste the following (adjust paths if needed):
+
+[Unit]
+Description=MAC-IP Detector Server
+After=network.target
+
+[Service]
+User=vmuser
+WorkingDirectory=/home/vmuser/onlinedetector
+ExecStart=/usr/bin/python3 /home/vmuser/onlinedetector/mac_ip_server_3_8_10_ubuntu_20.py
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+
+
+3. Reload systemd and enable your service
+
+sudo systemctl daemon-reexec        # fully reload systemd
+sudo systemctl daemon-reload        # reload service files
+sudo systemctl enable macipserver   # enable at boot
+sudo systemctl start macipserver    # start now
+
+4. Check status
+
+sudo systemctl status macipserver

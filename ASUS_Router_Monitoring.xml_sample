@@ -35,6 +35,20 @@
             <vpnAdapterName>ppp1</vpnAdapterName>
         </provider>
     </providers>
+    <onlineDevicesDetectors>
+        <detector>
+            <isEnabled>Y</isEnabled>
+            <refreshRate>60</refreshRate>
+            <ip>192.168.1.200</ip>
+            <port>8888</port>
+        </detector>
+        <detector>
+            <isEnabled>Y</isEnabled>
+            <refreshRate>60</refreshRate>
+            <ip>192.168.1.201</ip>
+            <port>8888</port>
+        </detector>
+    </onlineDevicesDetectors>
     <telegram>
         <telegramEnabled>Y</telegramEnabled>
         <telegramRealtimeEnabled>Y</telegramRealtimeEnabled>

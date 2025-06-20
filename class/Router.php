@@ -133,6 +133,8 @@ class Router
      */
     private Logger $logger;
 
+    private array $reliableOnlineStatuses = [];
+
     /**
      * Router constructor.
      *
@@ -493,11 +495,11 @@ class Router
                             if ($providerData['ip'] === '') {
                                 $message = "$header\n" . date("Y.m.d H:i:s") . " IP has been set to \[" . $localRouterAdapterDataIp . "].";
                                 $this->telegram->sendMessage($message, 'Markdown');
-                                $this->logger->addInstantLogData("TGMSG = [" . $message . "]", Logger::INSTANT_LOG_EVENT_TYPE_INFO);
+                                $this->logger->addInstantLogData($localProviderName . " IP has been set to [" . $localRouterAdapterDataIp . "].", Logger::INSTANT_LOG_EVENT_TYPE_INFO);
                             } elseif (!$this->config['settings']['demo']) {
                                 $message = "$header\n" . date("Y.m.d H:i:s") . " IP has changed from \[" . $localProviderIp . "] to \[" . $localRouterAdapterDataIp . "].";
                                 $this->telegram->sendMessage($message, 'Markdown');
-                                $this->logger->addInstantLogData("TGMSG = [" . $message . "]", Logger::INSTANT_LOG_EVENT_TYPE_WARNING);
+                                $this->logger->addInstantLogData($localProviderName . " IP has changed from [" . $localProviderIp . "] to [" . $localRouterAdapterDataIp . "].", Logger::INSTANT_LOG_EVENT_TYPE_WARNING);
                             }
 
                         }
@@ -938,12 +940,6 @@ class Router
 
         $beautifiedClients = [];
 
-        // Retrieve predefined client actions from config
-        $configClientActions = $this->config['clientsBasedActions']['client'] ?? [];
-
-        // Retrieve substitute names from config
-        $configSubstituteNames = $this->config['substituteNames']['client'] ?? [];
-
         foreach ($clients as $macAddress => $info) {
 
             // Skip invalid MACs (not in format AA:BB:CC:DD:EE:FF)
@@ -993,6 +989,86 @@ class Router
                 }
             }
 
+            // As router sometimes does not update WiFi time for offline clients,
+            // we assume online status based on other WiFi parameters.
+            if (
+                (int)$beautifiedClient['RSSI'] !== 0 ||
+                (int)$beautifiedClient['WiFiRX'] !== 0 ||
+                (int)$beautifiedClient['WiFiTX'] !== 0
+            ) {
+                $beautifiedClient['isOnline'] = true;
+            }
+
+
+            // Preserve original router-reported online status
+            $beautifiedClient['isOnlineByRouter'] = $beautifiedClient['isOnline'];
+
+            // Try the magic of using external online statuses provider
+            if (!empty($this->reliableOnlineStatuses)) {
+
+                $isOnlineByReliableSource = false;
+
+                foreach ($this->reliableOnlineStatuses as $status) {
+                    if ((strtolower($beautifiedClient['MAC']) == strtolower($status['mac'])) ||
+                        (strtolower($beautifiedClient['IP']) == strtolower($status['ip']))) {
+                        $isOnlineByReliableSource = true;
+                        break;
+                    }
+                }
+
+                $beautifiedClient['isOnline'] = $isOnlineByReliableSource;
+
+                if ($beautifiedClient['isWiFi']) {
+                    if ($this->parseHMSToSeconds($beautifiedClient['WiFiConnectionTime']) > (int)$status['seen']) {
+                        $beautifiedClient['WiFiConnectionTime'] = $this->formatSecondsToHMS($status['seen'] ?? 0);
+                    }
+                }
+
+            }
+
+
+            // Append this hardware to the client's known hardware list
+            if (!in_array($hardwareName, ($beautifiedClient['HardwareList'] ?? []))) {
+                $beautifiedClient['HardwareList'][] = $hardwareName;
+            }
+
+            // Tally the counters (using router data)
+            if ($beautifiedClient['isOnlineByRouter']) {
+                $totalOnline++;
+                if ($beautifiedClient['isWiFi']) {
+                    $wifiOnline++;
+                } elseif ($beautifiedClient['isWired']) {
+                    $wiredOnline++;
+                }
+            } else {
+                $totalOffline++;
+            }
+
+            // Store updated client data
+            $beautifiedClients[$beautifiedClient['MAC']] = $beautifiedClient;
+            $this->combinedClientsData[$beautifiedClient['MAC']] = $beautifiedClient;
+        }
+
+        // Persist final statistics and full client list for this hardware
+        $this->clientsData[$hardwareName] = [
+            'totalOnline' => $totalOnline,
+            'wiredOnline' => $wiredOnline,
+            'wifiOnline' => $wifiOnline,
+            'totalOffline' => $totalOffline,
+            'beautifiedClients' => $beautifiedClients,
+        ];
+    }
+
+    public function refreshBeautifiedClients(): void
+    {
+        // Retrieve predefined client actions from config
+        $configClientActions = $this->config['clientsBasedActions']['client'] ?? [];
+
+        // Retrieve substitute names from config
+        $configSubstituteNames = $this->config['substituteNames']['client'] ?? [];
+
+        foreach ($this->combinedClientsData as $beautifiedClient) {
+
             // Prepare online/offline time tracking structure
             $onlineStatusChangesArray = $beautifiedClient['OnlineStatusChanges'] ?? [
                 'firstSeenOnline' => -1,
@@ -1018,6 +1094,7 @@ class Router
             $clientSubstituteName = $this->findClientSubstituteName($configSubstituteNames, $beautifiedClient['MAC'], $beautifiedClient['IP']);
             if ($clientSubstituteName !== '') {
                 $beautifiedClient['Name'] = $clientSubstituteName;
+                $beautifiedClient['NickName'] = $clientSubstituteName;
             }
 
             // Apply any found actions
@@ -1047,6 +1124,7 @@ class Router
 
                 // Force connection type override
                 if (($clientActions['forceConnectionType'] ?? '') === 'wireless') {
+
                     $beautifiedClient['isWiFi'] = true;
                     $beautifiedClient['isWired'] = false;
                     $beautifiedClient['Connection'] = 'WiFiS';
@@ -1066,11 +1144,6 @@ class Router
                     $beautifiedClient['isWired'] = true;
                     $beautifiedClient['Connection'] = 'Wired';
                 }
-            }
-
-            // Append this hardware to the client's known hardware list
-            if (!in_array($hardwareName, ($beautifiedClient['HardwareList'] ?? []))) {
-                $beautifiedClient['HardwareList'][] = $hardwareName;
             }
 
             // Track online/offline durations
@@ -1102,31 +1175,9 @@ class Router
 
             $beautifiedClient['OnlineStatusChanges'] = $onlineStatusChangesArray;
 
-            // Tally the counters
-            if ($beautifiedClient['isOnline']) {
-                $totalOnline++;
-                if ($beautifiedClient['isWiFi']) {
-                    $wifiOnline++;
-                } elseif ($beautifiedClient['isWired']) {
-                    $wiredOnline++;
-                }
-            } else {
-                $totalOffline++;
-            }
 
-            // Store updated client data
-            $beautifiedClients[$beautifiedClient['MAC']] = $beautifiedClient;
             $this->combinedClientsData[$beautifiedClient['MAC']] = $beautifiedClient;
         }
-
-        // Persist final statistics and full client list for this hardware
-        $this->clientsData[$hardwareName] = [
-            'totalOnline' => $totalOnline,
-            'wiredOnline' => $wiredOnline,
-            'wifiOnline' => $wifiOnline,
-            'totalOffline' => $totalOffline,
-            'beautifiedClients' => $beautifiedClients,
-        ];
     }
 
 
@@ -1366,9 +1417,129 @@ class Router
         // Initialize time parts
         $seconds = isset($parts[0]) && is_numeric($parts[0]) ? (int)$parts[0] : 0;
         $minutes = isset($parts[1]) && is_numeric($parts[1]) ? (int)$parts[1] : 0;
-        $hours   = isset($parts[2]) && is_numeric($parts[2]) ? (int)$parts[2] : 0;
+        $hours = isset($parts[2]) && is_numeric($parts[2]) ? (int)$parts[2] : 0;
 
         return ($hours * 3600) + ($minutes * 60) + $seconds;
+    }
+
+    /**
+     * Refreshes the reliable online statuses from configured online devices detectors.
+     *
+     * This method iterates through the configured online devices detectors, checking if they are enabled
+     * and if enough time has passed since the last refresh. If so, it queries the online status provider
+     * and updates the reliable online statuses if successful.
+     */
+    public function refreshReliableOnlineStatuses(): void
+    {
+        // Reference so updates persist between calls
+        $detectors = &$this->config['onlineDevicesDetectors']['detector'];
+
+        foreach ($detectors as &$detector) {
+
+            if (($detector['isEnabled'] ?? '') !== 'Y') {
+                continue;
+            }
+
+            $ip = $detector['ip'] ?? '';
+            $port = $detector['port'] ?? '';
+            $refreshRate = (int)($detector['refreshRate'] ?? 60);
+            $lastRefresh = (int)($detector['lastRefreshTime'] ?? 0);
+
+            if ($ip === '' || $port === '') {
+                continue;
+            }
+
+            if (time() - $lastRefresh <= $refreshRate) {
+                // Top-priority detector is up-to-date -> rely on cached data.
+                // DO NOT continue to next detectors.
+                return;
+            }
+
+            $online = $this->queryOnlineStatusProvider($ip, $port);
+
+            if (!empty($online)) {
+                $this->reliableOnlineStatuses = $online;
+                $detector['lastRefreshTime'] = time();
+                $this->logger->addInstantLogData(
+                    "Successfully refreshed online statuses from ({$ip}:{$port}).",
+                    Logger::INSTANT_LOG_EVENT_TYPE_INFO
+                );
+                return;
+            }
+
+            $this->logger->addInstantLogData(
+                "Failed to refresh online statuses from ({$ip}:{$port}).",
+                Logger::INSTANT_LOG_EVENT_TYPE_ERROR
+            );
+        }
+    }
+
+
+    /**
+     * Queries the online status provider for device statuses.
+     *
+     * This method sends a GET request to the specified IP and port, expecting a JSON response
+     * containing device statuses. It returns an array of entries if successful, or an empty array
+     * if there was an error or the response was not valid JSON.
+     *
+     * @param string $ip The IP address of the online status provider.
+     * @param string $port The port number of the online status provider.
+     * @return array An array of device statuses or an empty array on failure.
+     */
+    private function queryOnlineStatusProvider(string $ip, string $port): array
+    {
+
+        $url = "http://" . $ip . ":" . $port . "/";
+
+        $ctx = stream_context_create([
+            'http' => [
+                'method' => 'GET',
+                'timeout' => 1,
+                'ignore_errors' => true,
+                'header' => "Accept: application/json\r\n",
+            ],
+        ]);
+
+        /* allow_url_fopen must be ON in php.ini */
+        $raw = @file_get_contents($url, false, $ctx);
+
+        if ($raw === false) {
+            // timed out or connection error
+            return [];
+        }
+
+        try {
+            $jsonDataAsArry = json_decode($raw, true, flags: JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            $this->logger->logException($e);
+            return [];
+        }
+
+        if (empty($jsonDataAsArry["entries"])) {
+            $this->logger->addInstantLogData("No entries found in the response from {$url}.", Logger::INSTANT_LOG_EVENT_TYPE_WARNING);
+            return [];
+        }
+
+        // ARP table often skips "self machine", so we need to check if we have it
+        $selfFound = false;
+        foreach ($jsonDataAsArry["entries"] as $entry) {
+            if (($entry['ip'] ?? '') == $ip) {
+                $selfFound = true;
+                break;
+            }
+        }
+
+        if (!$selfFound) {
+            $jsonDataAsArry["entries"][] = [
+                'mac' => '00:00:00:00:00:00', // Placeholder MAC for "self machine"
+                'ip' => $ip,
+                'kind' => 'unicast_private',
+                'seen' => time() - $this->routerStartDateTime->getTimestamp()
+            ];
+        }
+
+        return $jsonDataAsArry["entries"] ?? [];
+
     }
 
 }
