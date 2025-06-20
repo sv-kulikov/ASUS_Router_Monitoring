@@ -1460,10 +1460,6 @@ class Router
             if (!empty($online)) {
                 $this->reliableOnlineStatuses = $online;
                 $detector['lastRefreshTime'] = time();
-                $this->logger->addInstantLogData(
-                    "Successfully refreshed online statuses from ({$ip}:{$port}).",
-                    Logger::INSTANT_LOG_EVENT_TYPE_INFO
-                );
                 return;
             }
 
