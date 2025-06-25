@@ -275,7 +275,8 @@ class Logger
         });
 
         $html .= "\n";
-        $html .= "IP             Connection     Name\n";
+        $html .= str_pad("IP (CL = " . count($onlineClientsData) . ")", 15);
+        $html .= "Connection     Name\n";
         foreach ($onlineClientsData as $client) {
             $ip = str_pad($client['IP'], 15);
             $connection = $client['Connection'];
