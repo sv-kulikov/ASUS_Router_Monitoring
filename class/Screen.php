@@ -239,7 +239,11 @@ class Screen
     {
         // If you want, change the symbols to: █ ▓ ▒
 
-        $perc = $speedValue / $globalMaxSpeed;
+        if ($globalMaxSpeed != 0) {
+            $perc = $speedValue / $globalMaxSpeed;
+        } else {
+            $perc = 0;
+        }
         $labelToShow = $directionLetter . ' ' . str_pad($this->formatBytes($speedValue) . '/s', $speedLengthWithSpace);
 
         $graphSymbolsCountActive = floor($perc * ($oneProviderWidth - strlen($labelToShow) - 1));
@@ -312,7 +316,7 @@ class Screen
         return $this->getColoredText($labelToShow, $color) . str_repeat(' ', $paddingSpaces);
     }
 
-    private function getInstantLog() : string
+    private function getInstantLog(): string
     {
         $instantLogAsText = str_repeat(' ', $this->screenWidth + Screen::TIME_STAMP_LENGTH_WITH_SPACE + 1);
         $instantLogAsText .= "\n";

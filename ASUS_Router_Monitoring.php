@@ -69,6 +69,14 @@ if ($keyboardEvents) {
     echo "Keyboard events are disabled. Good choice.\n";
 }
 
+// Capture STDERR output to a file
+$captureSTDERR = $config->getNestedParameter('settings', 'captureSTDERR') === 'Y';
+if ($captureSTDERR) {
+    echo "STDERR capture is enabled. See 'stderr_YYYY_MM_DD.log' files in the directory defined by 'logPath' setting.\n";
+} else {
+    echo "STDERR capture is disabled.\n";
+}
+
 // Display detailed devices data status
 $detailedDevicesData = $config->getNestedParameter('settings', 'showDetailedDevicesData') === 'Y';
 if ($detailedDevicesData) {

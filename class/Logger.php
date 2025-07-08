@@ -35,6 +35,12 @@ class Logger
     private string $logFullPath = '';
 
     /**
+     * @var string Full path to the file where STDERR is captured.
+     * This is set during the constructor if capturing STDERR is enabled.
+     */
+    private string $captureSTDERRFullPath = '';
+
+    /**
      * @var string Last exception date and time as a formatted string.
      * This is updated whenever an exception is logged.
      */
@@ -53,7 +59,15 @@ class Logger
             $this->logFullPath = realpath(__DIR__ . '/../' . $this->config['settings']['logPath']);
             if (!($this->logFullPath && is_dir($this->logFullPath) && is_writable($this->logFullPath))) {
                 $this->config['settings']['logData'] = 'N';
+                $this->config['settings']['captureSTDERR'] = 'N';
             }
+        }
+
+        if ($this->config['settings']['captureSTDERR'] === 'Y') {
+            // Redirect STDERR to the log file if configured
+            $stderrFile = $this->logFullPath . DIRECTORY_SEPARATOR . 'stderr_' . date('Y_m_d') . '.log';
+            ini_set('log_errors', '1');
+            ini_set('error_log', $stderrFile);
         }
     }
 
