@@ -451,7 +451,7 @@ class Router
                     $providerData['RXbytes'] = $routerAdapterData['rx'];
                     $providerData['TXbytes'] = $routerAdapterData['tx'];
 
-                    // Fix attempt to deal with ISP reconnects.
+                    // A fix attempt to deal with ISP reconnects.
 
                     // BEFORE:
                     // $providerData['RXbytesAccumulated'] += ($providerData['RXbytes'] - $providerData['RXbytesLast']);
@@ -471,10 +471,10 @@ class Router
 
                     $providerData['RXbytesAccumulated'] += $rxDelta;
                     $providerData['TXbytesAccumulated'] += $txDelta;
-                    // +++ End of fix attempt
+                    // +++ End of a fix attempt
 
 
-                    if ($providerData['ip'] != $routerAdapterData['ip']) {
+                    if (($providerData['ip'] ?? '') != ($routerAdapterData['ip'] ?? '')) {
                         $providerData['ipChanges']++;
 
                         if ($this->telegram->isTelegramEnabled()) {
