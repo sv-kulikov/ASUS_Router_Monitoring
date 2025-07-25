@@ -357,9 +357,27 @@ class Router
     {
         $this->currentRefreshTime = microtime(true);
 
-        foreach ($this->adaptersData as $routerAdapterName => $routerAdapterData) {
+        foreach ($this->config['providers']['provider'] as $providerKey => $providerData) {
 
-            foreach ($this->config['providers']['provider'] as $providerKey => $providerData) {
+            $this->providersData[$providerKey] =  [
+                'providerName' => ($providerData['providerName'] ?? ''),
+                'vpnAdapterName' => ($providerData['vpnAdapterName'] ?? ''),
+                'RXbytes' => 0,
+                'TXbytes' => 0,
+                'RXbytesLast' => 0,
+                'TXbytesLast' => 0,
+                'RXbytesOnStart' => 0,
+                'TXbytesOnStart' => 0,
+                'RXbytesAccumulated' => 0,
+                'TXbytesAccumulated' => 0,
+                'isOffline' => false,
+                'ip' => '-.-.-.-',
+                'ipChanges' => -1,
+                'idleRXcount' => 0,
+                'idleTXcount' => 0,
+            ];
+
+            foreach ($this->adaptersData as $routerAdapterName => $routerAdapterData) {
 
                 if ($providerData['vpnAdapterName'] == $routerAdapterName) {
                     $providerData['RXbytes'] = $routerAdapterData['rx'];
@@ -377,6 +395,7 @@ class Router
                     $providerData['idleTXcount'] = 0;
                     $this->providersData[$providerKey] = $providerData;
                 }
+
             }
 
         }
@@ -480,7 +499,7 @@ class Router
                         if ($this->telegram->isTelegramEnabled()) {
 
                             $localProviderName = $providerData['providerName'];
-                            $localRouterAdapterDataIp = $routerAdapterData['ip'];
+                            $localRouterAdapterDataIp = ($routerAdapterData['ip'] ?? '');
                             $localProviderIp = $providerData['ip'];
                             if ($this->config['settings']['demo']) {
                                 $localProviderName = "Provider" . $providerNumberForDemo;
@@ -505,8 +524,8 @@ class Router
                         }
                     }
 
-                    $providerData['ip'] = $routerAdapterData['ip'];
-                    $providerData['ddns'] = $routerAdapterData['ddns'];
+                    $providerData['ip'] = ($routerAdapterData['ip'] ?? '');
+                    $providerData['ddns'] = ($routerAdapterData['ddns'] ?? false);
                     $this->providersData[$providerKey] = $providerData;
                 }
             }
