@@ -1524,20 +1524,20 @@ class Router
         }
 
         try {
-            $jsonDataAsArry = json_decode($raw, true, flags: JSON_THROW_ON_ERROR);
+            $jsonDataAsArray = json_decode($raw, true, flags: JSON_THROW_ON_ERROR);
         } catch (\JsonException $e) {
             $this->logger->logException($e);
             return [];
         }
 
-        if (empty($jsonDataAsArry["entries"])) {
+        if (empty($jsonDataAsArray["entries"])) {
             $this->logger->addInstantLogData("No entries found in the response from {$url}.", Logger::INSTANT_LOG_EVENT_TYPE_WARNING);
             return [];
         }
 
-        // ARP table often skips "self machine", so we need to check if we have it
+        // ARP table often skips "self-machine", so we need to check if we have it
         $selfFound = false;
-        foreach ($jsonDataAsArry["entries"] as $entry) {
+        foreach ($jsonDataAsArray["entries"] as $entry) {
             if (($entry['ip'] ?? '') == $ip) {
                 $selfFound = true;
                 break;
@@ -1545,7 +1545,7 @@ class Router
         }
 
         if (!$selfFound) {
-            $jsonDataAsArry["entries"][] = [
+            $jsonDataAsArray["entries"][] = [
                 'mac' => '00:00:00:00:00:00', // Placeholder MAC for "self machine"
                 'ip' => $ip,
                 'kind' => 'unicast_private',
@@ -1553,7 +1553,7 @@ class Router
             ];
         }
 
-        return $jsonDataAsArry["entries"] ?? [];
+        return $jsonDataAsArray["entries"] ?? [];
 
     }
 
