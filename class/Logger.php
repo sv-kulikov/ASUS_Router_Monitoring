@@ -46,6 +46,16 @@ class Logger
      */
     private string $lastExceptionDateTimeAsString = '';
 
+    /**
+     * @var string Name of the router log dump file.
+     * This is set during the constructor based on the configuration.
+     */
+    private string $routerLogDumpFile = '';
+
+    /**
+     * @var array Array to keep instant log strings.
+     * This is updated upon adding anything to the instant log.
+     */
     private array $instantLogData = [];
 
     /**
@@ -68,6 +78,13 @@ class Logger
             $stderrFile = $this->logFullPath . DIRECTORY_SEPARATOR . 'stderr_' . date('Y_m_d') . '.log';
             ini_set('log_errors', '1');
             ini_set('error_log', $stderrFile);
+        }
+
+        $this->routerLogDumpFile = ($this->config['settings']['routerLogDumpFile'] ?? '');
+        if ($this->routerLogDumpFile != '') {
+            $this->routerLogDumpFile = str_replace("\\", "/", rtrim(realpath(__DIR__ . '/../'), DIRECTORY_SEPARATOR)
+                . DIRECTORY_SEPARATOR
+                . ltrim($this->routerLogDumpFile, DIRECTORY_SEPARATOR));
         }
     }
 
@@ -420,6 +437,20 @@ class Logger
         if (count($this->instantLogData) > 4) {
             // Remove the first (oldest) event
             array_shift($this->instantLogData);
+        }
+    }
+
+    /**
+     * Dumps the router log data to a specified file if configured.
+     *
+     * @param string $dataAsString The router log data as a string.
+     */
+    public function dumpRouterLog(string $dataAsString): void
+    {
+        if ($this->routerLogDumpFile != '') {
+            file_put_contents($this->routerLogDumpFile, "*** +++ Dump as of " . date('Y.m.d H:i:s') . " +++ ***" . "\n\n", FILE_APPEND);
+            file_put_contents($this->routerLogDumpFile, $dataAsString . "\n\n", FILE_APPEND);
+            file_put_contents($this->routerLogDumpFile, "*** --- Dump as of " . date('Y.m.d H:i:s') . " --- ***" . "\n\n", FILE_APPEND);
         }
     }
 

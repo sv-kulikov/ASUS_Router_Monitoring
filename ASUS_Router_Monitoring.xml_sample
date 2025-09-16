@@ -25,6 +25,9 @@
         <logData>Y</logData>
         <logPath>../_ASUS_Logs</logPath>
         <captureSTDERR>Y</captureSTDERR>
+        <routerLogDumpFile>../_ASUS_Logs/_rt.log</routerLogDumpFile>
+        <routerLogDumpLinesOnProviderIPChanges>10000</routerLogDumpLinesOnProviderIPChanges>
+        <routerLogToTelegramOnProviderIPChanges>10</routerLogToTelegramOnProviderIPChanges>
     </settings>
     <providers>
         <provider>

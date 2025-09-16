@@ -359,7 +359,7 @@ class Router
 
         foreach ($this->config['providers']['provider'] as $providerKey => $providerData) {
 
-            $this->providersData[$providerKey] =  [
+            $this->providersData[$providerKey] = [
                 'providerName' => ($providerData['providerName'] ?? ''),
                 'vpnAdapterName' => ($providerData['vpnAdapterName'] ?? ''),
                 'RXbytes' => 0,
@@ -496,6 +496,19 @@ class Router
                     if (($providerData['ip'] ?? '') != ($routerAdapterData['ip'] ?? '')) {
                         $providerData['ipChanges']++;
 
+                        // Looks like ISP is down, as the new IP is '' (empty string).
+                        $dumpLinesToFile = (int)($this->config['settings']['routerLogDumpLinesOnProviderIPChanges'] ?? 0);
+                        $dumpLinesToTelegram = (int)($this->config['settings']['routerLogToTelegramOnProviderIPChanges'] ?? 0);
+                        if (($routerAdapterData['ip'] ?? '') == '') {
+                            if (($dumpLinesToFile > 0) || ($dumpLinesToTelegram > 0)) {
+                                $logData = $this->getRouterLog($dumpLinesToFile, $dumpLinesToTelegram);
+
+                                if ($dumpLinesToFile > 0) {
+                                    $this->logger->dumpRouterLog($logData['forFile'] ?? '');
+                                }
+                            }
+                        }
+
                         if ($this->telegram->isTelegramEnabled()) {
 
                             $localProviderName = $providerData['providerName'];
@@ -519,8 +532,12 @@ class Router
                                 $message = "$header\n" . date("Y.m.d H:i:s") . " IP has changed from \[" . $localProviderIp . "] to \[" . $localRouterAdapterDataIp . "].";
                                 $this->telegram->sendMessage($message, 'Markdown');
                                 $this->logger->addInstantLogData($localProviderName . " IP has changed from [" . $localProviderIp . "] to [" . $localRouterAdapterDataIp . "].", Logger::INSTANT_LOG_EVENT_TYPE_WARNING);
-                            }
 
+                                if ($dumpLinesToTelegram > 0) {
+                                    $this->telegram->sendMessage("*Last $dumpLinesToTelegram lines of router log:*\n" . ($logData['forTelegram'] ?? ''), 'Markdown');
+                                }
+
+                            }
                         }
                     }
 
@@ -529,7 +546,6 @@ class Router
                     $this->providersData[$providerKey] = $providerData;
                 }
             }
-
         }
 
         $this->providersData['TOTAL']['RXbytesLast'] = 0;
@@ -1078,6 +1094,12 @@ class Router
         ];
     }
 
+    /**
+     * Refreshes and beautifies the combined clients data by applying configuration-based actions
+     * and tracking online/offline durations.
+     *
+     * @return void
+     */
     public function refreshBeautifiedClients(): void
     {
         // Retrieve predefined client actions from config
@@ -1198,7 +1220,6 @@ class Router
             $this->combinedClientsData[$beautifiedClient['MAC']] = $beautifiedClient;
         }
     }
-
 
     /**
      * Updates the action time for a client based on the action type (online/offline).
@@ -1369,7 +1390,6 @@ class Router
         return [];
     }
 
-
     /**
      * Finds a substitute name for a client based on MAC or IP.
      *
@@ -1403,7 +1423,6 @@ class Router
 
         return '';
     }
-
 
     /**
      * Formats seconds into a "router-like" string in the format "H:M:S"
@@ -1489,7 +1508,6 @@ class Router
         }
     }
 
-
     /**
      * Queries the online status provider for device statuses.
      *
@@ -1557,4 +1575,23 @@ class Router
 
     }
 
+    /**
+     * Retrieves the router log from the SSH client.
+     *
+     * This method executes a command on the router via SSH to fetch the system log.
+     * It then splits the log into lines and returns the specified number of lines
+     * for both file storage and Telegram messages.
+     *
+     * @param int $linesForFile The number of lines to return for file storage. Default is -1 (all lines).
+     * @param int $linesForTelegram The number of lines to return for Telegram messages.
+     * @return array An array containing two elements: the log for file storage and the log for Telegram.
+     */
+    public function getRouterLog(int $linesForFile = -1, int $linesForTelegram = -1) : array
+    {
+        $sshResponse = $this->sshClientRouter->exec('cat /tmp/syslog.log');
+        $sshResponseSplitByLines = preg_split('/\r\n|\r|\n/', trim($sshResponse));
+        $lastLinesForFile = array_slice($sshResponseSplitByLines, -$linesForFile);
+        $lastLinesForTelegram = array_slice($sshResponseSplitByLines, -$linesForTelegram);
+        return ['forFile' => implode("\n", $lastLinesForFile), 'forTelegram' => implode("\n", $lastLinesForTelegram)];
+    }
 }
