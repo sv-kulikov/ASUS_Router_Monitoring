@@ -496,18 +496,18 @@ class Router
                     if (($providerData['ip'] ?? '') != ($routerAdapterData['ip'] ?? '')) {
                         $providerData['ipChanges']++;
 
-                        // Looks like ISP is down, as the new IP is '' (empty string).
+                        // Looks like ISP is down (temporarily?), as the new IP is '' (empty string).
                         $dumpLinesToFile = (int)($this->config['settings']['routerLogDumpLinesOnProviderIPChanges'] ?? 0);
                         $dumpLinesToTelegram = (int)($this->config['settings']['routerLogToTelegramOnProviderIPChanges'] ?? 0);
-                        if (($routerAdapterData['ip'] ?? '') == '') {
-                            if (($dumpLinesToFile > 0) || ($dumpLinesToTelegram > 0)) {
-                                $logData = $this->getRouterLog($dumpLinesToFile, $dumpLinesToTelegram);
 
-                                if ($dumpLinesToFile > 0) {
-                                    $this->logger->dumpRouterLog($logData['forFile'] ?? '');
-                                }
+                        if (($dumpLinesToFile > 0) || ($dumpLinesToTelegram > 0)) {
+                            $logData = $this->getRouterLog($dumpLinesToFile, $dumpLinesToTelegram);
+
+                            if ($dumpLinesToFile > 0) {
+                                $this->logger->dumpRouterLog($logData['forFile'] ?? '', $dumpLinesToFile);
                             }
                         }
+
 
                         if ($this->telegram->isTelegramEnabled()) {
 

@@ -444,13 +444,15 @@ class Logger
      * Dumps the router log data to a specified file if configured.
      *
      * @param string $dataAsString The router log data as a string.
+     * @param int $dumpLinesToFile The number of log lines dumped to the file.
      */
-    public function dumpRouterLog(string $dataAsString): void
+    public function dumpRouterLog(string $dataAsString, int $dumpLinesToFile): void
     {
         if ($this->routerLogDumpFile != '') {
-            file_put_contents($this->routerLogDumpFile, "*** +++ Dump as of " . date('Y.m.d H:i:s') . " +++ ***" . "\n\n", FILE_APPEND);
+            $logDateTime = date('Y.m.d H:i:s');
+            file_put_contents($this->routerLogDumpFile, "*** +++ Dump of [" . $dumpLinesToFile . "] log lines as of [" . $logDateTime . "] +++ ***" . "\n\n", FILE_APPEND);
             file_put_contents($this->routerLogDumpFile, $dataAsString . "\n\n", FILE_APPEND);
-            file_put_contents($this->routerLogDumpFile, "*** --- Dump as of " . date('Y.m.d H:i:s') . " --- ***" . "\n\n", FILE_APPEND);
+            file_put_contents($this->routerLogDumpFile, "*** --- Dump of [" . $dumpLinesToFile . "] log lines as of [" . $logDateTime . "] --- ***" . "\n\n", FILE_APPEND);
         }
     }
 
