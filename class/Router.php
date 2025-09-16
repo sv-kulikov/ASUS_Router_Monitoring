@@ -867,7 +867,12 @@ class Router
 
                 $hooksCleanResults = array();
                 foreach ($hooksRawResult as $oneResultCommand => $oneResultData) {
-                    $hooksCleanResults[$oneResultCommand] = json_decode($oneResultData['response'], true);
+                    try {
+                        $hooksCleanResults[$oneResultCommand] = json_decode($oneResultData['response'], true);
+                    } catch (Exception $e) {
+                        $this->logger->addInstantLogData("Error decoding JSON from hook [" . $oneResultCommand . "] on [" . $hardwareName . "]: " . $e->getMessage(), Logger::INSTANT_LOG_EVENT_TYPE_ERROR);
+                        $hooksCleanResults[$oneResultCommand] = [];
+                    }
                 }
                 $hardwareData['hooksResults'] = $hooksCleanResults;
 
@@ -1586,7 +1591,7 @@ class Router
      * @param int $linesForTelegram The number of lines to return for Telegram messages.
      * @return array An array containing two elements: the log for file storage and the log for Telegram.
      */
-    public function getRouterLog(int $linesForFile = -1, int $linesForTelegram = -1) : array
+    public function getRouterLog(int $linesForFile = -1, int $linesForTelegram = -1): array
     {
         $sshResponse = $this->sshClientRouter->exec('cat /tmp/syslog.log');
         $sshResponseSplitByLines = preg_split('/\r\n|\r|\n/', trim($sshResponse));
