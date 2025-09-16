@@ -147,6 +147,12 @@ class Worker
         // Process client-specific actions if any
         $this->processClientSpecificActions();
 
+        if ($this->logger->getLastDateOfDailyLogProcessing() !== date('Y.m.d')) {
+            $routerLogData = $this->router->getDeviceInnerLog($this->router::DEVICE_ROUTER, -1, 0);
+            $repeaterLogData = $this->router->getDeviceInnerLog($this->router::DEVICE_REPEATER, -1, 0);
+            $this->logger->processDailyDevicesLogSaving($routerLogData['forFile'], $repeaterLogData['forFile']);
+        }
+
         // Pause execution for the configured refresh rate
         $sleepTime = $this->config->getNestedParameter('settings', 'refreshRate');
         if ($this->config->getNestedParameter('settings', 'checkForKeyboardEvents') === 'Y') {

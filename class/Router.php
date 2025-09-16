@@ -14,6 +14,10 @@ use phpseclib3\Net\SSH2;
  */
 class Router
 {
+    /** Device types */
+    public const string DEVICE_ROUTER = 'router';
+    public const string DEVICE_REPEATER = 'repeater';
+
     /**
      * @var SSH2 SSH client for the router connection.
      */
@@ -133,6 +137,11 @@ class Router
      */
     private Logger $logger;
 
+    /**
+     * @var array Reliable online statuses for providers to avoid false positives.
+     *            Structure: [providerKey => [isOnline1, isOnline2, ...]]
+     *            This is used to track the last few online statuses of each provider.
+     */
     private array $reliableOnlineStatuses = [];
 
     /**
@@ -501,7 +510,7 @@ class Router
                         $dumpLinesToTelegram = (int)($this->config['settings']['routerLogToTelegramOnProviderIPChanges'] ?? 0);
 
                         if (($dumpLinesToFile > 0) || ($dumpLinesToTelegram > 0)) {
-                            $logData = $this->getRouterLog($dumpLinesToFile, $dumpLinesToTelegram);
+                            $logData = $this->getDeviceInnerLog(self::DEVICE_ROUTER, $dumpLinesToFile, $dumpLinesToTelegram);
 
                             if ($dumpLinesToFile > 0) {
                                 $this->logger->dumpRouterLog($logData['forFile'] ?? '', $dumpLinesToFile);
@@ -1581,22 +1590,28 @@ class Router
     }
 
     /**
-     * Retrieves the router log from the SSH client.
+     * Retrieves the inner log from the specified device (router or repeater) via SSH.
      *
-     * This method executes a command on the router via SSH to fetch the system log.
+     * This method executes a command on the specified device via SSH to fetch the system log.
      * It then splits the log into lines and returns the specified number of lines
      * for both file storage and Telegram messages.
      *
+     * @param string $devive The device identifier ('router' or 'repeater').
      * @param int $linesForFile The number of lines to return for file storage. Default is -1 (all lines).
      * @param int $linesForTelegram The number of lines to return for Telegram messages.
      * @return array An array containing two elements: the log for file storage and the log for Telegram.
      */
-    public function getRouterLog(int $linesForFile = -1, int $linesForTelegram = -1): array
+    public function getDeviceInnerLog(string $devive, int $linesForFile = -1, int $linesForTelegram = -1): array
     {
-        $sshResponse = $this->sshClientRouter->exec('cat /tmp/syslog.log');
+        if ($devive === self::DEVICE_ROUTER) {
+            $sshResponse = $this->sshClientRouter->exec('cat /tmp/syslog.log');
+        } else {
+            $sshResponse = $this->sshClientRepeater->exec('cat /tmp/syslog.log');
+        }
         $sshResponseSplitByLines = preg_split('/\r\n|\r|\n/', trim($sshResponse));
         $lastLinesForFile = array_slice($sshResponseSplitByLines, -$linesForFile);
         $lastLinesForTelegram = array_slice($sshResponseSplitByLines, -$linesForTelegram);
         return ['forFile' => implode("\n", $lastLinesForFile), 'forTelegram' => implode("\n", $lastLinesForTelegram)];
     }
+
 }

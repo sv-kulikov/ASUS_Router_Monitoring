@@ -28,6 +28,10 @@
         <routerLogDumpFile>../_ASUS_Logs/_rt.log</routerLogDumpFile>
         <routerLogDumpLinesOnProviderIPChanges>10000</routerLogDumpLinesOnProviderIPChanges>
         <routerLogToTelegramOnProviderIPChanges>10</routerLogToTelegramOnProviderIPChanges>
+        <saveRouterLogDaily>Y</saveRouterLogDaily>
+        <saveRouterLogPath>../_ASUS_Logs</saveRouterLogPath>
+        <saveRepeaterLogDaily>Y</saveRepeaterLogDaily>
+        <saveRepeaterLogPath>../_ASUS_Logs</saveRepeaterLogPath>
     </settings>
     <providers>
         <provider>

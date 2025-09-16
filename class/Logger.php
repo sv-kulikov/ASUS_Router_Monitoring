@@ -35,6 +35,19 @@ class Logger
     private string $logFullPath = '';
 
     /**
+     * @var string Full path to the router log file.
+     * This is set during the constructor if router logging is enabled.
+     */
+    private string $routerLogFullPath = '';
+
+    /**
+     * @var string Full path to the repeater log file.
+     * This is set during the constructor if repeater logging is enabled.
+     */
+    private string $repeaterLogFullPath = '';
+
+
+    /**
      * @var string Full path to the file where STDERR is captured.
      * This is set during the constructor if capturing STDERR is enabled.
      */
@@ -59,11 +72,21 @@ class Logger
     private array $instantLogData = [];
 
     /**
+     * @var string Last date of daily log processing in 'Y-m-d' format.
+     * This is used to track when the last daily log processing occurred.
+     */
+    private string $lastDateOfDailyLogProcessing = '';
+
+
+    /**
      * Logger constructor.
      * @param Config $config Configuration object for accessing settings.
      */
     public function __construct(Config $config)
     {
+        // We need this early to set up exception handling
+        // and possibly redirect STDERR to a file.
+        // So we cannot completely rely on the checkSettings() method here.
         $this->config = $config->getConfigData();
         if ($this->config['settings']['logData'] === 'Y') {
             $this->logFullPath = realpath(__DIR__ . '/../' . $this->config['settings']['logPath']);
@@ -80,12 +103,6 @@ class Logger
             ini_set('error_log', $stderrFile);
         }
 
-        $this->routerLogDumpFile = ($this->config['settings']['routerLogDumpFile'] ?? '');
-        if ($this->routerLogDumpFile != '') {
-            $this->routerLogDumpFile = str_replace("\\", "/", rtrim(realpath(__DIR__ . '/../'), DIRECTORY_SEPARATOR)
-                . DIRECTORY_SEPARATOR
-                . ltrim($this->routerLogDumpFile, DIRECTORY_SEPARATOR));
-        }
     }
 
     /**
@@ -93,6 +110,7 @@ class Logger
      */
     public function checkSettings(): void
     {
+        // General logging
         if ($this->config['settings']['logData'] === 'Y') {
             $this->logFullPath = realpath(__DIR__ . '/../' . $this->config['settings']['logPath']);
             if ($this->logFullPath && is_dir($this->logFullPath) && is_writable($this->logFullPath)) {
@@ -106,6 +124,54 @@ class Logger
         } else {
             echo "Logging is disabled in the settings.\n";
         }
+
+        // Router log saving
+        if ($this->config['settings']['saveRouterLogDaily'] === 'Y') {
+            $this->routerLogFullPath = realpath(__DIR__ . '/../' . $this->config['settings']['saveRouterLogPath']);
+            if ($this->routerLogFullPath && is_dir($this->routerLogFullPath) && is_writable($this->routerLogFullPath)) {
+                echo $this->config['settings']['demo']
+                    ? "Daily router log saving is enabled. In demo mode the log file name is hidden.\n"
+                    : "Daily router log saving is enabled. Logging to: [$this->routerLogFullPath]\n";
+            } else {
+                echo "Router log saving directory [$this->routerLogFullPath] is invalid or not writable! Daily router log saving is disabled.\n";
+                $this->config['settings']['saveRouterLogDaily'] = 'N';
+            }
+        } else {
+            echo "Daily router log saving is disabled in the settings.\n";
+        }
+
+        // Repeater log saving
+        if ($this->config['settings']['saveRepeaterLogDaily'] === 'Y') {
+            $this->repeaterLogFullPath = realpath(__DIR__ . '/../' . $this->config['settings']['saveRepeaterLogPath']);
+            if ($this->repeaterLogFullPath && is_dir($this->repeaterLogFullPath) && is_writable($this->repeaterLogFullPath)) {
+                echo $this->config['settings']['demo']
+                    ? "Daily repeater log saving is enabled. In demo mode the log file name is hidden.\n"
+                    : "Daily repeater log saving is enabled. Logging to: [$this->repeaterLogFullPath]\n";
+            } else {
+                echo "Repeater log saving directory [$this->repeaterLogFullPath] is invalid or not writable! Daily repeater log saving is disabled.\n";
+                $this->config['settings']['saveRepeaterLogDaily'] = 'N';
+            }
+        } else {
+            echo "Daily repeater log saving is disabled in the settings.\n";
+        }
+
+        // Router log dump file
+        $this->routerLogDumpFile = ($this->config['settings']['routerLogDumpFile'] ?? '');
+        if ($this->routerLogDumpFile != '') {
+            $this->routerLogDumpFile = str_replace("\\", "/", rtrim(realpath(__DIR__ . '/../'), DIRECTORY_SEPARATOR)
+                . DIRECTORY_SEPARATOR
+                . ltrim($this->routerLogDumpFile, DIRECTORY_SEPARATOR));
+
+            echo $this->config['settings']['demo']
+                ? "Router log dump on ISP ip changes is enabled. In demo mode the log file name is hidden.\n"
+                : "Router log dump on ISP ip changes is enabled. Logging to: [$this->routerLogDumpFile]\n";
+
+        } else {
+            echo "Router log dump file is not set in the settings (empty string). Router log dumping on ISP ip changes is disabled.\n";
+        }
+
+        // Initialize last date of daily log processing
+        $this->lastDateOfDailyLogProcessing = '1970.01.01';
     }
 
     /**
@@ -454,6 +520,40 @@ class Logger
             file_put_contents($this->routerLogDumpFile, $dataAsString . "\n\n", FILE_APPEND);
             file_put_contents($this->routerLogDumpFile, "*** --- Dump of [" . $dumpLinesToFile . "] log lines as of [" . $logDateTime . "] --- ***" . "\n\n", FILE_APPEND);
         }
+    }
+
+    /**
+     * Processes and saves daily router and repeater logs if the date has changed.
+     *
+     * @param string $routerLogData The router log data as a string.
+     * @param string $repeaterLogData The repeater log data as a string.
+     */
+    public function processDailyDevicesLogSaving(string $routerLogData, string $repeaterLogData): void
+    {
+        if (date('Y-m-d') !== $this->lastDateOfDailyLogProcessing) {
+            $this->lastDateOfDailyLogProcessing = date('Y.m.d');
+
+            if ($this->config['settings']['saveRouterLogDaily'] === 'Y' && $routerLogData != '') {
+                $fileName = $this->routerLogFullPath . DIRECTORY_SEPARATOR . 'router_log_' . date('Y_m_d') . '.txt';
+                file_put_contents($fileName, $routerLogData);
+            }
+
+            if ($this->config['settings']['saveRepeaterLogDaily'] === 'Y' && $repeaterLogData != '') {
+                $fileName = $this->repeaterLogFullPath . DIRECTORY_SEPARATOR . 'repeater_log_' . date('Y_m_d') . '.txt';
+                file_put_contents($fileName, $repeaterLogData);
+            }
+        }
+
+    }
+
+    /**
+     * Returns the last date of daily log processing.
+     *
+     * @return string The last date of daily log processing in 'Y-m-d' format.
+     */
+    public function getLastDateOfDailyLogProcessing(): string
+    {
+        return $this->lastDateOfDailyLogProcessing;
     }
 
 }
