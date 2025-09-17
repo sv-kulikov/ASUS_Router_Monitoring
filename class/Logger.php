@@ -518,7 +518,7 @@ class Logger
             $logDateTime = date('Y.m.d H:i:s');
             file_put_contents($this->routerLogDumpFile, "*** +++ Dump of [" . $totalLines . "] of limit [" . $dumpLinesToFile . "] log lines as of [" . $logDateTime . "] +++ ***" . "\n\n", FILE_APPEND);
             file_put_contents($this->routerLogDumpFile, $dataAsString . "\n\n", FILE_APPEND);
-            file_put_contents($this->routerLogDumpFile, "*** --- Dump of [" . $totalLines . "] of limit [" . $dumpLinesToFile . "]log lines as of [" . $logDateTime . "] --- ***" . "\n\n", FILE_APPEND);
+            file_put_contents($this->routerLogDumpFile, "*** --- Dump of [" . $totalLines . "] of limit [" . $dumpLinesToFile . "] log lines as of [" . $logDateTime . "] --- ***" . "\n\n", FILE_APPEND);
         }
     }
 
@@ -535,13 +535,13 @@ class Logger
 
             if ($this->config['settings']['saveRouterLogDaily'] === 'Y' && $routerLogData != '') {
                 $fileName = $this->routerLogFullPath . DIRECTORY_SEPARATOR . 'router_log_' . date('Y_m_d') . '.txt';
-                file_put_contents($fileName, "Dump as of " . date('Y.m.d H:i:s') . ", total lines: " . $routerTotalLines ."\n\n", FILE_APPEND);
+                file_put_contents($fileName, "Dump as of " . date('Y.m.d H:i:s') . ", total lines: " . $routerTotalLines ."\n\n");
                 file_put_contents($fileName, $routerLogData, FILE_APPEND);
             }
 
             if ($this->config['settings']['saveRepeaterLogDaily'] === 'Y' && $repeaterLogData != '') {
                 $fileName = $this->repeaterLogFullPath . DIRECTORY_SEPARATOR . 'repeater_log_' . date('Y_m_d') . '.txt';
-                file_put_contents($fileName, "Dump as of " . date('Y.m.d H:i:s') . ", total lines: " . $repeaterTotalLines ."\n\n", FILE_APPEND);
+                file_put_contents($fileName, "Dump as of " . date('Y.m.d H:i:s') . ", total lines: " . $repeaterTotalLines ."\n\n");
                 file_put_contents($fileName, $repeaterLogData, FILE_APPEND);
             }
         }
