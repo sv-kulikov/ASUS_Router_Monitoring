@@ -512,13 +512,13 @@ class Logger
      * @param string $dataAsString The router log data as a string.
      * @param int $dumpLinesToFile The number of log lines dumped to the file.
      */
-    public function dumpRouterLog(string $dataAsString, int $dumpLinesToFile): void
+    public function dumpRouterLog(string $dataAsString, int $dumpLinesToFile, int $totalLines): void
     {
         if ($this->routerLogDumpFile != '') {
             $logDateTime = date('Y.m.d H:i:s');
-            file_put_contents($this->routerLogDumpFile, "*** +++ Dump of [" . $dumpLinesToFile . "] log lines as of [" . $logDateTime . "] +++ ***" . "\n\n", FILE_APPEND);
+            file_put_contents($this->routerLogDumpFile, "*** +++ Dump of [" . $totalLines . "] of limit [" . $dumpLinesToFile . "] log lines as of [" . $logDateTime . "] +++ ***" . "\n\n", FILE_APPEND);
             file_put_contents($this->routerLogDumpFile, $dataAsString . "\n\n", FILE_APPEND);
-            file_put_contents($this->routerLogDumpFile, "*** --- Dump of [" . $dumpLinesToFile . "] log lines as of [" . $logDateTime . "] --- ***" . "\n\n", FILE_APPEND);
+            file_put_contents($this->routerLogDumpFile, "*** --- Dump of [" . $totalLines . "] of limit [" . $dumpLinesToFile . "]log lines as of [" . $logDateTime . "] --- ***" . "\n\n", FILE_APPEND);
         }
     }
 
@@ -528,19 +528,21 @@ class Logger
      * @param string $routerLogData The router log data as a string.
      * @param string $repeaterLogData The repeater log data as a string.
      */
-    public function processDailyDevicesLogSaving(string $routerLogData, string $repeaterLogData): void
+    public function processDailyDevicesLogSaving(string $routerLogData, string $repeaterLogData, int $routerTotalLines, int $repeaterTotalLines): void
     {
         if (date('Y-m-d') !== $this->lastDateOfDailyLogProcessing) {
             $this->lastDateOfDailyLogProcessing = date('Y.m.d');
 
             if ($this->config['settings']['saveRouterLogDaily'] === 'Y' && $routerLogData != '') {
                 $fileName = $this->routerLogFullPath . DIRECTORY_SEPARATOR . 'router_log_' . date('Y_m_d') . '.txt';
-                file_put_contents($fileName, $routerLogData);
+                file_put_contents($fileName, "Dump as of " . date('Y.m.d H:i:s') . ", total lines: " . $routerTotalLines ."\n\n", FILE_APPEND);
+                file_put_contents($fileName, $routerLogData, FILE_APPEND);
             }
 
             if ($this->config['settings']['saveRepeaterLogDaily'] === 'Y' && $repeaterLogData != '') {
                 $fileName = $this->repeaterLogFullPath . DIRECTORY_SEPARATOR . 'repeater_log_' . date('Y_m_d') . '.txt';
-                file_put_contents($fileName, $repeaterLogData);
+                file_put_contents($fileName, "Dump as of " . date('Y.m.d H:i:s') . ", total lines: " . $repeaterTotalLines ."\n\n", FILE_APPEND);
+                file_put_contents($fileName, $repeaterLogData, FILE_APPEND);
             }
         }
 

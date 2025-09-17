@@ -115,10 +115,7 @@ class Worker
      *
      * Executes periodic tasks such as refreshing data and updating the screen.
      *
-     * @param Router $router The router object to update (passed by reference).
-     * @param Config $config Configuration object containing application settings (passed by reference).
-     * @param Screen $screen The screen object for UI-related actions (passed by reference).
-     *
+     * @param Router|null $router The router object to update (passed by reference).
      * @return void
      */
     public function globalStep(?Router $router): void
@@ -150,7 +147,7 @@ class Worker
         if ($this->logger->getLastDateOfDailyLogProcessing() !== date('Y.m.d')) {
             $routerLogData = $this->router->getDeviceInnerLog($this->router::DEVICE_ROUTER, -1, 0);
             $repeaterLogData = $this->router->getDeviceInnerLog($this->router::DEVICE_REPEATER, -1, 0);
-            $this->logger->processDailyDevicesLogSaving($routerLogData['forFile'], $repeaterLogData['forFile']);
+            $this->logger->processDailyDevicesLogSaving($routerLogData['forFile'] ?? '', $repeaterLogData['forFile'] ?? '', $routerLogData['totalLines'] ?? 0, $repeaterLogData['totalLines'] ?? 0);
         }
 
         // Pause execution for the configured refresh rate

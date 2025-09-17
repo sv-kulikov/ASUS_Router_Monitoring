@@ -513,7 +513,7 @@ class Router
                             $logData = $this->getDeviceInnerLog(self::DEVICE_ROUTER, $dumpLinesToFile, $dumpLinesToTelegram);
 
                             if ($dumpLinesToFile > 0) {
-                                $this->logger->dumpRouterLog($logData['forFile'] ?? '', $dumpLinesToFile);
+                                $this->logger->dumpRouterLog($logData['forFile'] ?? '', $dumpLinesToFile, $logData['totalLines'] ?? 0);
                             }
                         }
 
@@ -1611,7 +1611,7 @@ class Router
         $sshResponseSplitByLines = preg_split('/\r\n|\r|\n/', trim($sshResponse));
         $lastLinesForFile = array_slice($sshResponseSplitByLines, -$linesForFile);
         $lastLinesForTelegram = array_slice($sshResponseSplitByLines, -$linesForTelegram);
-        return ['forFile' => implode("\n", $lastLinesForFile), 'forTelegram' => implode("\n", $lastLinesForTelegram)];
+        return ['forFile' => implode("\n", $lastLinesForFile), 'forTelegram' => implode("\n", $lastLinesForTelegram), 'totalLines' => count($sshResponseSplitByLines)];
     }
 
 }
