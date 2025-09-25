@@ -541,11 +541,15 @@ class Router
                                 $message = "$header\n" . date("Y.m.d H:i:s") . " IP has changed from \[" . $localProviderIp . "] to \[" . $localRouterAdapterDataIp . "].";
                                 $this->telegram->sendMessage($message, 'Markdown');
                                 $this->logger->addInstantLogData($localProviderName . " IP has changed from [" . $localProviderIp . "] to [" . $localRouterAdapterDataIp . "].", Logger::INSTANT_LOG_EVENT_TYPE_WARNING);
+                            }
 
+                            if (!$this->config['settings']['demo']) {
+                                $markdownReadyLog = $this->telegram->getMarkdownReadyLog($logData['forTelegram'] ?? '');
                                 if ($dumpLinesToTelegram > 0) {
-                                    $this->telegram->sendMessage("*Last $dumpLinesToTelegram lines of router log:*\n" . ($logData['forTelegram'] ?? ''), 'Markdown');
+                                    $this->telegram->sendMessage("*Last $dumpLinesToTelegram lines of router log:*\n" . $markdownReadyLog, 'Markdown');
+                                } else {
+                                    $this->telegram->sendMessage("*DEBUG Last $dumpLinesToTelegram lines of router log:*\n" . $markdownReadyLog, 'Markdown');
                                 }
-
                             }
                         }
                     }

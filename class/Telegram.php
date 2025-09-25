@@ -301,4 +301,22 @@ class Telegram
         }
     }
 
+
+    /**
+     * Formats a given text as a MarkdownV2 code block.
+     *
+     * This method takes a string and wraps it in triple backticks to format it
+     * as a code block in MarkdownV2. It also allows specifying the language for syntax highlighting.
+     *
+     * @param string $text The text to be formatted as a code block.
+     * @return string The formatted MarkdownV2 code block.
+     */
+    function getMarkdownReadyLog(string $text): string
+    {
+        $text = str_replace(["\r\n", "\r"], "\n", $text);
+        $text = str_replace("```", "``\u{200B}`", $text);
+        return "```\n" . $text . "\n```";
+    }
+
+
 }
