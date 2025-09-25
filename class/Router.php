@@ -540,14 +540,13 @@ class Router
                             } elseif (!$this->config['settings']['demo']) {
                                 $message = "$header\n" . date("Y.m.d H:i:s") . " IP has changed from \[" . $localProviderIp . "] to \[" . $localRouterAdapterDataIp . "].";
                                 $this->telegram->sendMessage($message, 'Markdown');
-                                $this->logger->addInstantLogData($localProviderName . " IP has changed from [" . $localProviderIp . "] to [" . $localRouterAdapterDataIp . "].", Logger::INSTANT_LOG_EVENT_TYPE_WARNING);
-                            }
 
-                            if (!$this->config['settings']['demo']) {
-                                $markdownReadyLog = $this->telegram->getMarkdownReadyLog($logData['forTelegram'] ?? '');
                                 if ($dumpLinesToTelegram > 0) {
+                                    $markdownReadyLog = $this->telegram->getMarkdownReadyLog($logData['forTelegram'] ?? '');
                                     $this->telegram->sendMessage("*Last " . $markdownReadyLog['lines'] . " lines of router log:*\n" . $markdownReadyLog['text'], 'Markdown');
                                 }
+
+                                $this->logger->addInstantLogData($localProviderName . " IP has changed from [" . $localProviderIp . "] to [" . $localRouterAdapterDataIp . "].", Logger::INSTANT_LOG_EVENT_TYPE_WARNING);
                             }
                         }
                     }

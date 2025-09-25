@@ -301,7 +301,6 @@ class Telegram
         }
     }
 
-
     /**
      * Formats a given text as a MarkdownV2 code block.
      *
@@ -318,7 +317,6 @@ class Telegram
         $text = str_replace("```", "``\u{200B}`", $text);
         return ['text' => "```\n" . $text . "\n```", 'lines' => substr_count($text, "\n") + 1];
     }
-
 
     /**
      * Filters and trims a raw log string to include only relevant lines and limits its length.
