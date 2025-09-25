@@ -546,9 +546,7 @@ class Router
                             if (!$this->config['settings']['demo']) {
                                 $markdownReadyLog = $this->telegram->getMarkdownReadyLog($logData['forTelegram'] ?? '');
                                 if ($dumpLinesToTelegram > 0) {
-                                    $this->telegram->sendMessage("*Last $dumpLinesToTelegram lines of router log:*\n" . $markdownReadyLog, 'Markdown');
-                                } else {
-                                    $this->telegram->sendMessage("*DEBUG Last $dumpLinesToTelegram lines of router log:*\n" . $markdownReadyLog, 'Markdown');
+                                    $this->telegram->sendMessage("*Last " . $markdownReadyLog['lines'] . " lines of router log:*\n" . $markdownReadyLog['text'], 'Markdown');
                                 }
                             }
                         }

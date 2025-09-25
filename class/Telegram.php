@@ -309,13 +309,83 @@ class Telegram
      * as a code block in MarkdownV2. It also allows specifying the language for syntax highlighting.
      *
      * @param string $text The text to be formatted as a code block.
-     * @return string The formatted MarkdownV2 code block.
+     * @return array The formatted MarkdownV2 code block, number of lines in the text.
      */
-    function getMarkdownReadyLog(string $text): string
+    public function getMarkdownReadyLog(string $text): array
     {
+        $text = trim($this->filterAndTrimLog($text), " \n.\t\r");
         $text = str_replace(["\r\n", "\r"], "\n", $text);
         $text = str_replace("```", "``\u{200B}`", $text);
-        return "```\n" . $text . "\n```";
+        return ['text' => "```\n" . $text . "\n```", 'lines' => substr_count($text, "\n") + 1];
+    }
+
+
+    /**
+     * Filters and trims a raw log string to include only relevant lines and limits its length.
+     *
+     * This method processes the input log string to retain only lines containing specific keywords
+     * related to network connectivity. It also trims the log to ensure it does not exceed a specified
+     * maximum length, while maintaining UTF-8 integrity.
+     *
+     * @param string $logRaw The raw log string to be filtered and trimmed.
+     * @param int $maxLen The maximum length of the resulting log string (default is 3000 characters).
+     * @return string The filtered and trimmed log string.
+     */
+    private function filterAndTrimLog(string $logRaw, int $maxLen = 3000): string
+    {
+        $keywords = ['link', 'wan', 'connection', 'modem'];
+        $keywordsToSkip = ['HTTP/1.1 200'];
+        $lines = preg_split("/\r\n|\r|\n/", $logRaw);
+        $result = [];
+        $skipping = false;
+
+        foreach ($lines as $line) {
+            if ($line === '') continue;
+
+            $match = false;
+            foreach ($keywords as $kw) {
+                if (stripos($line, $kw) !== false) {
+                    $match = true;
+                    break;
+                }
+            }
+
+            foreach ($keywordsToSkip as $kw) {
+                if (stripos($line, $kw) !== false) {
+                    $match = false;
+                    break;
+                }
+            }
+
+            if ($match) {
+                if ($skipping) {
+                    $result[] = '...';
+                    $skipping = false;
+                }
+                $result[] = $line;
+            } else {
+                $skipping = true;
+            }
+        }
+
+        if ($skipping && (empty($result) || end($result) !== '...')) {
+            $result[] = '...';
+        }
+
+        $text = implode("\n", $result);
+
+        // Trim to last $maxLen characters (UTF-8 safe)
+        if (mb_strlen($text, 'UTF-8') > $maxLen) {
+            $text = mb_substr($text, -$maxLen, null, 'UTF-8');
+            // Avoid starting mid-line
+            $pos = mb_strpos($text, "\n", 0, 'UTF-8');
+            if ($pos !== false) {
+                $text = mb_substr($text, $pos + 1, null, 'UTF-8');
+            }
+            $text = "...\n" . $text;
+        }
+
+        return $text;
     }
 
 
