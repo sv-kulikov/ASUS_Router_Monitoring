@@ -227,7 +227,7 @@ class Screen
      *
      * @param string $directionLetter The letter representing the direction (e.g., 'R' for RX, 'T' for TX).
      * @param int|float $speedValue The speed value to display.
-     * @param int $globalMaxSpeed The maximum speed across all providers.
+     * @param int|float $globalMaxSpeed The maximum speed across all providers.
      * @param int $oneProviderWidth The width allocated for one provider on the screen.
      * @param int $speedLengthWithSpace The length of the speed value including space.
      * @param int $paddingSpaces The number of spaces to pad after the line.

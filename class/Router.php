@@ -4,6 +4,7 @@ namespace Sv\Network\VmsRtbw;
 
 use DateTime;
 use Exception;
+use JsonException;
 use phpseclib3\Net\SSH2;
 
 /**
@@ -1069,7 +1070,7 @@ class Router
                 $beautifiedClient['isOnline'] = $isOnlineByReliableSource;
 
                 if ($beautifiedClient['isWiFi']) {
-                    if ($this->parseHMSToSeconds($beautifiedClient['WiFiConnectionTime']) > (int)$status['seen']) {
+                    if ($this->parseHMSToSeconds($beautifiedClient['WiFiConnectionTime']) > (int)($status['seen'] ?? 0)) {
                         $beautifiedClient['WiFiConnectionTime'] = $this->formatSecondsToHMS($status['seen'] ?? 0);
                     }
                 }
@@ -1517,7 +1518,7 @@ class Router
             }
 
             $this->logger->addInstantLogData(
-                "Failed to refresh online statuses from ({$ip}:{$port}).",
+                "Failed to refresh online statuses from ($ip:$port).",
                 Logger::INSTANT_LOG_EVENT_TYPE_ERROR
             );
         }
@@ -1558,13 +1559,13 @@ class Router
 
         try {
             $jsonDataAsArray = json_decode($raw, true, flags: JSON_THROW_ON_ERROR);
-        } catch (\JsonException $e) {
+        } catch (JsonException $e) {
             $this->logger->logException($e);
             return [];
         }
 
         if (empty($jsonDataAsArray["entries"])) {
-            $this->logger->addInstantLogData("No entries found in the response from {$url}.", Logger::INSTANT_LOG_EVENT_TYPE_WARNING);
+            $this->logger->addInstantLogData("No entries found in the response from $url.", Logger::INSTANT_LOG_EVENT_TYPE_WARNING);
             return [];
         }
 

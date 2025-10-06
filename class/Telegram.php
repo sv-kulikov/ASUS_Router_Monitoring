@@ -99,7 +99,8 @@ class Telegram
      *
      * Initializes the Telegram messaging settings based on the provided configuration object.
      *
-     * @param Config $configObject Configuration object containing Telegram settings.
+     * @param array $config
+     * @param Logger $logger
      */
     public function __construct(array $config, Logger $logger)
     {
