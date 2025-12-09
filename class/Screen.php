@@ -325,7 +325,7 @@ class Screen
         $instantLogAsText .= "\n";
 
         foreach ($this->logger->getInstantLogData() as $instantLogEvent) {
-            $instantLogAsText .= $this->getColoredText(date('H:i:s', $instantLogEvent['timestamp']), Color::LIGHT_GRAY) . ' ';
+            $instantLogAsText .= $this->getColoredText(date('d.m.y H:i:s', $instantLogEvent['timestamp']), Color::LIGHT_GRAY) . ' ';
             switch ($instantLogEvent['eventType']) {
                 case Logger::INSTANT_LOG_EVENT_TYPE_INFO:
                     $color = Color::GREEN;
