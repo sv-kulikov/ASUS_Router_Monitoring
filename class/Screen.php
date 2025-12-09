@@ -345,9 +345,9 @@ class Screen
             }
 
             if ($this->config['settings']['demo']) {
-                $instantLogEvent['event'] = str_pad('Demo mode. Event details are hidden.', $this->screenWidth);
+                $instantLogEvent['event'] = str_pad('Demo mode. Event details are hidden.', $this->screenWidth - 9);
             }
-            $instantLogAsText .= $this->getColoredText(str_pad($instantLogEvent['event'], $this->screenWidth), $color);
+            $instantLogAsText .= $this->getColoredText(str_pad($instantLogEvent['event'], $this->screenWidth - 9), $color);
             $instantLogAsText .= "\n";
         }
 
