@@ -1559,8 +1559,16 @@ class Router
 
         try {
             $jsonDataAsArray = json_decode($raw, true, flags: JSON_THROW_ON_ERROR);
-        } catch (JsonException $e) {
-            $this->logger->logException($e);
+        } catch (\JsonException $e) {
+            if ($e->getCode() === JSON_ERROR_SYNTAX) {
+                $this->logger->addInstantLogData(
+                    "Error decoding JSON from $url: {$e->getMessage()}",
+                    Logger::INSTANT_LOG_EVENT_TYPE_ERROR
+                );
+            } else {
+                $this->logger->logException($e);
+            }
+
             return [];
         }
 
