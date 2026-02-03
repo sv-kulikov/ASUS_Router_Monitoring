@@ -466,6 +466,19 @@ class Screen
                         $providerNameWithData .= $successDateTime;
                     }
                     $providerNameWithData .= "]";
+
+                    $aliveMTProto = $this->logger->getAliveMTProtoCount();
+                    $deadMTProto = $this->logger->getDeadMTProtoCount();
+
+                    if ($aliveMTProto > -1 || $deadMTProto > -1) {
+                        $providerNameWithData .= "[";
+                        $providerNameWithData .= $this->getColoredText($aliveMTProto, Color::LIGHT_GREEN);
+                        $providerNameWithData .= "/";
+                        $deadCountColor = $deadMTProto > $aliveMTProto ? Color::LIGHT_RED : Color::LIGHT_YELLOW;
+                        $providerNameWithData .= $this->getColoredText($deadMTProto, $deadCountColor);
+                        $providerNameWithData .= "]";
+                    }
+
                 }
             }
 

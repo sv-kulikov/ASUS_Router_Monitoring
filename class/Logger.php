@@ -83,6 +83,16 @@ class Logger
     private int $UTCOffset = 0;
 
     /**
+     * @var int Count of alive MTProto proxies.
+     */
+    private int $aliveMTProtoCount = -1;
+
+    /**
+     * @var int Count of dead MTProto proxies.
+     */
+    private int $deadMTProtoCount = -1;
+
+    /**
      * Logger constructor.
      * @param Config $config Configuration object for accessing settings.
      */
@@ -427,28 +437,31 @@ class Logger
 
         $html .= "\n";
 
-        $ts = (int)($MTProtoData['timestamp'] ?? 0);
-        $offset = (int)($this->UTCOffset ?? 0);
-        $html .= "MTProto: " . date("Y.m.d H:i:s", $ts + 3600 * $offset) . "\n";
+        if (($this->config['settings']['telegram']['telegramShowMTProto'] ?? '') === 'Y') {
 
-        if (count($MTProtoData["alive_list"] ?? []) > 0) {
-            $html .= "*** Alive (" . ($MTProtoData["alive_count"] ?? '-') . "):\n";
-            if ($this->config['settings']['demo'] || $this->config['settings']['demo'] === 'Y') {
-                $html .= "*** Demo mode. List hidden. ***\n";
-            } else {
-                foreach ($MTProtoData["alive_list"] ?? [] as $aliveMTProto) {
-                    $html .= "+ " . $aliveMTProto . "\n";
+            $ts = (int)($MTProtoData['timestamp'] ?? 0);
+            $offset = (int)($this->UTCOffset ?? 0);
+            $html .= "MTProto: " . date("Y.m.d H:i:s", $ts + 3600 * $offset) . "\n";
+
+            if (count($MTProtoData["alive_list"] ?? []) > 0) {
+                $html .= "*** Alive (" . ($MTProtoData["alive_count"] ?? '-') . "):\n";
+                if ($this->config['settings']['demo'] || $this->config['settings']['demo'] === 'Y') {
+                    $html .= "*** Demo mode. List hidden. ***\n";
+                } else {
+                    foreach ($MTProtoData["alive_list"] ?? [] as $aliveMTProto) {
+                        $html .= "+ " . $aliveMTProto . "\n";
+                    }
                 }
             }
-        }
 
-        if (count($MTProtoData["dead_list"] ?? []) > 0) {
-            $html .= "*** Dead (" . ($MTProtoData["dead_count"] ?? '-') . "):\n";
-            if ($this->config['settings']['demo'] || $this->config['settings']['demo'] === 'Y') {
-                $html .= "*** Demo mode. List hidden. ***\n";
-            } else {
-                foreach ($MTProtoData["dead_list"] ?? [] as $deadMTProto) {
-                    $html .= "- " . $deadMTProto . "\n";
+            if (count($MTProtoData["dead_list"] ?? []) > 0) {
+                $html .= "*** Dead (" . ($MTProtoData["dead_count"] ?? '-') . "):\n";
+                if ($this->config['settings']['demo'] || $this->config['settings']['demo'] === 'Y') {
+                    $html .= "*** Demo mode. List hidden. ***\n";
+                } else {
+                    foreach ($MTProtoData["dead_list"] ?? [] as $deadMTProto) {
+                        $html .= "- " . $deadMTProto . "\n";
+                    }
                 }
             }
         }
@@ -588,6 +601,26 @@ class Logger
     public function getLastDateOfDailyLogProcessing(): string
     {
         return $this->lastDateOfDailyLogProcessing;
+    }
+
+    public function getAliveMTProtoCount(): int
+    {
+        return $this->aliveMTProtoCount;
+    }
+
+    public function setAliveMTProtoCount(int $aliveMTProtoCount): void
+    {
+        $this->aliveMTProtoCount = $aliveMTProtoCount;
+    }
+
+    public function getDeadMTProtoCount(): int
+    {
+        return $this->deadMTProtoCount;
+    }
+
+    public function setDeadMTProtoCount(int $deadMTProtoCount): void
+    {
+        $this->deadMTProtoCount = $deadMTProtoCount;
     }
 
 }

@@ -73,6 +73,7 @@
     </onlineMTProtoDetectors>
     <telegram>
         <telegramEnabled>Y</telegramEnabled>
+        <telegramShowMTProto>Y</telegramShowMTProto>
         <telegramRealtimeEnabled>Y</telegramRealtimeEnabled>
         <telegramStatusEnabled>Y</telegramStatusEnabled>
         <telegramStatusPeriod>60</telegramStatusPeriod>

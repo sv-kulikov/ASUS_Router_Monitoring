@@ -287,6 +287,9 @@ class Telegram
 
             $telegramDelay = (int)$this->config['telegram']['telegramStatusPeriod'] ?? 60;
 
+            $this->logger->setAliveMTProtoCount($MTProtoList['alive_count'] ?? -1);
+            $this->logger->setDeadMTProtoCount($MTProtoList['dead_count'] ?? -1);
+
             if ($this->lastStatisticsMsgId === 0 || (time() - $this->lastTelegramUpdateTimestamp > $telegramDelay)) {
                 $this->lastTelegramUpdateTimestamp = time();
                 $message = $this->logger->getPrettyTelegramLogData($providers, $hardware, $cleanedClientsList, $MTProtoList);
