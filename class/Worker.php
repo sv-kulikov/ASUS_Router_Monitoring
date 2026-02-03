@@ -130,6 +130,7 @@ class Worker
         $this->router->refreshHardwareData();
         $this->router->refreshStats();
         $this->router->refreshReliableOnlineStatuses();
+        $this->router->refreshMTProtoOnlineStatuses();
         $this->router->refreshBeautifiedClients();
 
         $providersData = $this->router->getProvidersData();
@@ -139,7 +140,7 @@ class Worker
         $this->screen->drawScreen($providersData, $hardwareData);
 
         // Process Telegram updates
-        $this->telegram->makeTelegramUpdates($providersData, $hardwareData, $this->router->getCombinedClientsData());
+        $this->telegram->makeTelegramUpdates($providersData, $hardwareData, $this->router->getCombinedClientsData(), $this->router->getMTProtoData());
 
         // Process client-specific actions if any
         $this->processClientSpecificActions();

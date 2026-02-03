@@ -57,6 +57,20 @@
             <port>8888</port>
         </detector>
     </onlineDevicesDetectors>
+    <onlineMTProtoDetectors>
+        <detector>
+            <isEnabled>Y</isEnabled>
+            <refreshRate>500</refreshRate>
+            <ip>192.168.1.200</ip>
+            <port>8899</port>
+        </detector>
+        <detector>
+            <isEnabled>N</isEnabled>
+            <refreshRate>500</refreshRate>
+            <ip>192.168.1.201</ip>
+            <port>8899</port>
+        </detector>
+    </onlineMTProtoDetectors>
     <telegram>
         <telegramEnabled>Y</telegramEnabled>
         <telegramRealtimeEnabled>Y</telegramRealtimeEnabled>

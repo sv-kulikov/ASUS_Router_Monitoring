@@ -1,0 +1,68 @@
+1) Make script executable
+
+chmod +x /home/vmuser/onlinedetector/mtproto_checker_3_8_10_ubuntu_20.py
+
+2) Create a service unit file
+
+sudo nano /etc/systemd/system/mtproto-checker.service
+
+Paste this (adjust paths/user if needed):
+
+[Unit]
+Description=MTProto Checker Server
+After=network.target
+
+[Service]
+User=vmuser
+WorkingDirectory=/home/vmuser/onlinedetector
+
+# IMPORTANT: pass YAML config path as argument
+ExecStart=/usr/bin/python3 /home/vmuser/onlinedetector/mtproto_checker_3_8_10_ubuntu_20.py /home/vmuser/onlinedetector/config/network/mtproto_checker.yaml
+
+Restart=on-failure
+RestartSec=3
+
+# Nice-to-have: ensure logs go to journal
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+
+
+* If your YAML is elsewhere, change the last path in `ExecStart`.
+* Your script listens on **8899** (`DEFAULT_PORT = 8899`). If you use a firewall, open it:
+
+sudo ufw allow 8899/tcp
+
+3) Reload systemd and enable the service
+
+sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
+sudo systemctl enable mtproto-checker
+sudo systemctl start mtproto-checker
+
+
+4) Check status + logs
+
+sudo systemctl status mtproto-checker
+
+Follow logs live:
+
+sudo journalctl -u mtproto-checker -f
+
+
+5) Test it
+
+From the server:
+curl -s http://127.0.0.1:8899/ | head
+
+From your browser:
+
+* `http://SERVER_IP:8899/`
+* `http://SERVER_IP:8899/?refresh=30`
+* `http://SERVER_IP:8899/?force=1`
+
+
+P.S. If Telethon/PyYAML are installed only in a venv, then change `ExecStart` to the venv python, e.g.:
+ExecStart=/home/vmuser/onlinedetector/venv/bin/python /home/vmuser/onlinedetector/mtproto_checker_3_8_10_ubuntu_20.py /home/vmuser/onlinedetector/config/network/mtproto_checker.yaml

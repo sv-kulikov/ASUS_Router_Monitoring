@@ -1,0 +1,12 @@
+# This is a SAMPLE configuration file for the MTProto Proxy Checker tool.
+# Please modify the values below according to your setup.
+
+api_id: 123456
+api_hash: "0123456789abcdef0123456789abcdef"
+
+proxies:
+  - name: "SGP-01"
+    mtprotolink: "tg://proxy?server=1.2.3.4&port=443&secret=ddaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+  - name: "DE-02"
+    mtprotolink: "tg://proxy?server=5.6.7.8&port=8443&secret=ddbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"

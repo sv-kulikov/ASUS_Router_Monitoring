@@ -280,7 +280,7 @@ class Telegram
      * @param array $providers Array of provider data, including IP, status, traffic, and flags.
      * @param array $hardware Array of hardware metrics per device (router/repeater).
      */
-    public function makeTelegramUpdates(array $providers, array $hardware, array $cleanedClientsList): void
+    public function makeTelegramUpdates(array $providers, array $hardware, array $cleanedClientsList, array $MTProtoList): void
     {
         if ($this->isTelegramEnabled() &&
             $this->isTelegramRealtimeEnabled()) {
@@ -289,7 +289,7 @@ class Telegram
 
             if ($this->lastStatisticsMsgId === 0 || (time() - $this->lastTelegramUpdateTimestamp > $telegramDelay)) {
                 $this->lastTelegramUpdateTimestamp = time();
-                $message = $this->logger->getPrettyTelegramLogData($providers, $hardware, $cleanedClientsList);
+                $message = $this->logger->getPrettyTelegramLogData($providers, $hardware, $cleanedClientsList, $MTProtoList);
                 if ($this->lastStatisticsMsgId === 0) {
                     $msgId = $this->sendMessage($message, "HTML");
                     if ($msgId !== false) {

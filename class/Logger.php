@@ -77,6 +77,10 @@ class Logger
      */
     private string $lastDateOfDailyLogProcessing = '';
 
+    /**
+     * @var int UTC offset for time formatting.
+     */
+    private int $UTCOffset = 0;
 
     /**
      * Logger constructor.
@@ -297,7 +301,7 @@ class Logger
      * @param array $hardware Array of hardware data.
      * @return string Formatted HTML string with network data.
      */
-    public function getPrettyTelegramLogData(array $providers, array $hardware, array $cleanedClientsList): string
+    public function getPrettyTelegramLogData(array $providers, array $hardware, array $cleanedClientsList, array $MTProtoData): string
     {
 
         $html = "<pre>Network: " . date("Y.m.d H:i:s") . "\n\n";
@@ -421,6 +425,34 @@ class Logger
             $html .= $ip . $connection . $name . "\n";
         }
 
+        $html .= "\n";
+
+        $ts = (int)($MTProtoData['timestamp'] ?? 0);
+        $offset = (int)($this->UTCOffset ?? 0);
+        $html .= "MTProto: " . date("Y.m.d H:i:s", $ts + 3600 * $offset) . "\n";
+
+        if (count($MTProtoData["alive_list"] ?? []) > 0) {
+            $html .= "*** Alive (" . ($MTProtoData["alive_count"] ?? '-') . "):\n";
+            if ($this->config['settings']['demo'] || $this->config['settings']['demo'] === 'Y') {
+                $html .= "*** Demo mode. List hidden. ***\n";
+            } else {
+                foreach ($MTProtoData["alive_list"] ?? [] as $aliveMTProto) {
+                    $html .= "+ " . $aliveMTProto . "\n";
+                }
+            }
+        }
+
+        if (count($MTProtoData["dead_list"] ?? []) > 0) {
+            $html .= "*** Dead (" . ($MTProtoData["dead_count"] ?? '-') . "):\n";
+            if ($this->config['settings']['demo'] || $this->config['settings']['demo'] === 'Y') {
+                $html .= "*** Demo mode. List hidden. ***\n";
+            } else {
+                foreach ($MTProtoData["dead_list"] ?? [] as $deadMTProto) {
+                    $html .= "- " . $deadMTProto . "\n";
+                }
+            }
+        }
+
         $html .= "</pre>";
 
         return $html;
@@ -535,13 +567,13 @@ class Logger
 
             if ($this->config['settings']['saveRouterLogDaily'] === 'Y' && $routerLogData != '') {
                 $fileName = $this->routerLogFullPath . DIRECTORY_SEPARATOR . 'router_log_' . date('Y_m_d') . '.txt';
-                file_put_contents($fileName, "Dump as of " . date('Y.m.d H:i:s') . ", total lines: " . $routerTotalLines ."\n\n");
+                file_put_contents($fileName, "Dump as of " . date('Y.m.d H:i:s') . ", total lines: " . $routerTotalLines . "\n\n");
                 file_put_contents($fileName, $routerLogData, FILE_APPEND);
             }
 
             if ($this->config['settings']['saveRepeaterLogDaily'] === 'Y' && $repeaterLogData != '') {
                 $fileName = $this->repeaterLogFullPath . DIRECTORY_SEPARATOR . 'repeater_log_' . date('Y_m_d') . '.txt';
-                file_put_contents($fileName, "Dump as of " . date('Y.m.d H:i:s') . ", total lines: " . $repeaterTotalLines ."\n\n");
+                file_put_contents($fileName, "Dump as of " . date('Y.m.d H:i:s') . ", total lines: " . $repeaterTotalLines . "\n\n");
                 file_put_contents($fileName, $repeaterLogData, FILE_APPEND);
             }
         }

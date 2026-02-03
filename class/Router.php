@@ -146,6 +146,13 @@ class Router
     private array $reliableOnlineStatuses = [];
 
     /**
+     * @var array Reliable online MTProto statuses for providers to avoid false positives.
+     *            Structure: [providerKey => [isOnline1, isOnline2, ...]]
+     *            This is used to track the last few MTProto online statuses of each provider.
+     */
+    private array $reliableOnlineMTProtoStatuses = [];
+
+    /**
      * Router constructor.
      *
      * Initializes the Router object with a Logger instance.
@@ -1334,6 +1341,16 @@ class Router
     }
 
     /**
+     * Returns the collected MTProto online statuses for clients.
+     *
+     * @return array An associative array containing MTProto online status data.
+     */
+    public function getMTProtoData(): array
+    {
+        return $this->reliableOnlineMTProtoStatuses;
+    }
+
+    /**
      * Checks if a given IP address is online by pinging it.
      *
      * This method uses the system's ping command to check if the specified IP address
@@ -1525,6 +1542,55 @@ class Router
     }
 
     /**
+     * Refreshes the reliable MTProto online statuses from configured MTProto detectors.
+     *
+     * This method iterates through the configured MTProto detectors, checking if they are enabled
+     * and if enough time has passed since the last refresh. If so, it queries the MTProto status provider
+     * and updates the reliable MTProto online statuses if successful.
+     */
+    public function refreshMTProtoOnlineStatuses(): void
+    {
+        // Reference so updates persist between calls
+        $detectors = &$this->config['onlineMTProtoDetectors']['detector'];
+
+        foreach ($detectors as &$detector) {
+
+            if (($detector['isEnabled'] ?? '') !== 'Y') {
+                continue;
+            }
+
+            $ip = $detector['ip'] ?? '';
+            $port = $detector['port'] ?? '';
+            $refreshRate = (int)($detector['refreshRate'] ?? 500);
+            $lastRefresh = (int)($detector['lastRefreshTime'] ?? 0);
+
+            if ($ip === '' || $port === '') {
+                continue;
+            }
+
+            if (time() - $lastRefresh <= $refreshRate) {
+                // Top-priority detector is up-to-date -> rely on cached data.
+                // DO NOT continue to next detectors.
+                return;
+            }
+
+            $onlineMTProto = $this->queryOnlineMTProtoStatusProvider($ip, $port);
+
+            if (!empty($onlineMTProto)) {
+                $this->reliableOnlineMTProtoStatuses = $onlineMTProto;
+                $detector['lastRefreshTime'] = time();
+                return;
+            }
+
+            $this->logger->addInstantLogData(
+                "Failed to refresh MTProto online statuses from ($ip:$port).",
+                Logger::INSTANT_LOG_EVENT_TYPE_ERROR
+            );
+        }
+    }
+
+
+    /**
      * Queries the online status provider for device statuses.
      *
      * This method sends a GET request to the specified IP and port, expecting a JSON response
@@ -1597,6 +1663,61 @@ class Router
 
         return $jsonDataAsArray["entries"] ?? [];
 
+    }
+
+    /**
+     * Queries the online MTProto status provider for device statuses.
+     *
+     * This method sends a GET request to the specified IP and port, expecting a JSON response
+     * containing MTProto statuses. It returns an array of entries if successful, or an empty array
+     * if there was an error or the response was not valid JSON.
+     *
+     * @param string $ip The IP address of the online MTProto status provider.
+     * @param string $port The port number of the online MTProto status provider.
+     * @return array An array of MTProto device statuses or an empty array on failure.
+     */
+    private function queryOnlineMTProtoStatusProvider(string $ip, string $port): array
+    {
+        $url = "http://" . $ip . ":" . $port . "/";
+
+        $ctx = stream_context_create([
+            'http' => [
+                'method' => 'GET',
+                'timeout' => 1,
+                'ignore_errors' => true,
+                'header' => "Accept: application/json\r\n",
+            ],
+        ]);
+
+        /* allow_url_fopen must be ON in php.ini */
+        $raw = @file_get_contents($url, false, $ctx);
+
+        if ($raw === false) {
+            // timed out or connection error
+            return [];
+        }
+
+        try {
+            $jsonDataAsArray = json_decode($raw, true, flags: JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            if ($e->getCode() === JSON_ERROR_SYNTAX) {
+                $this->logger->addInstantLogData(
+                    "Error decoding JSON from $url: {$e->getMessage()}",
+                    Logger::INSTANT_LOG_EVENT_TYPE_ERROR
+                );
+            } else {
+                $this->logger->logException($e);
+            }
+
+            return [];
+        }
+
+        if (empty($jsonDataAsArray)) {
+            $this->logger->addInstantLogData("No data found in the response for MTProto checker from $url.", Logger::INSTANT_LOG_EVENT_TYPE_WARNING);
+            return [];
+        }
+
+        return $jsonDataAsArray ?? [];
     }
 
     /**
