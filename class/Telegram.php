@@ -137,7 +137,7 @@ class Telegram
             return false;
         }
 
-        $url = "https://api.telegram.org/bot{$this->telegramBotToken}/sendMessage";
+        $url = "https://api.telegram.org/bot" . $this->telegramBotToken . "/sendMessage";
 
         $postData = [
             'chat_id' => $this->telegramChatId,
@@ -191,7 +191,7 @@ class Telegram
             return false;
         }
 
-        $url = "https://api.telegram.org/bot{$this->telegramBotToken}/editMessageText";
+        $url = "https://api.telegram.org/bot" . $this->telegramBotToken . "/editMessageText";
 
         $postData = [
             'chat_id' => $this->telegramChatId,

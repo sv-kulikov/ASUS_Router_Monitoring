@@ -437,10 +437,10 @@ class Logger
 
         $html .= "\n";
 
-        if (($this->config['settings']['telegram']['telegramShowMTProto'] ?? '') === 'Y') {
+        if (($this->config['telegram']['telegramShowMTProto'] ?? '') === 'Y') {
 
             $ts = (int)($MTProtoData['timestamp'] ?? 0);
-            $offset = (int)($this->UTCOffset ?? 0);
+            $offset = $this->UTCOffset ?? 0;
             $html .= "MTProto: " . date("Y.m.d H:i:s", $ts + 3600 * $offset) . "\n";
 
             if (count($MTProtoData["alive_list"] ?? []) > 0) {
