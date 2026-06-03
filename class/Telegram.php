@@ -319,8 +319,29 @@ class Telegram
         $text = trim($this->filterAndTrimLog($text), " \n.\t\r");
         $text = str_replace(["\r\n", "\r"], "\n", $text);
         $text = str_replace("```", "``\u{200B}`", $text);
-        return ['text' => "```\n" . $text . "\n```", 'lines' => substr_count($text, "\n") + 1];
+
+        $lines = explode("\n", $text);
+
+        // Remove lines that are only dots (e.g. "...", "....")
+        $filteredLines = array_filter($lines, function ($line) {
+            $line = trim($line);
+            return $line !== '' && str_replace('.', '', $line) !== '';
+        });
+
+        return [
+            'text'  => "```\n" . $text . "\n```",
+            'lines' => count($filteredLines)
+        ];
     }
+
+    //    OLD DEPRECATED VERSION
+    //    public function getMarkdownReadyLog(string $text): array
+    //    {
+    //        $text = trim($this->filterAndTrimLog($text), " \n.\t\r");
+    //        $text = str_replace(["\r\n", "\r"], "\n", $text);
+    //        $text = str_replace("```", "``\u{200B}`", $text);
+    //        return ['text' => "```\n" . $text . "\n```", 'lines' => substr_count($text, "\n") + 1];
+    //    }
 
     /**
      * Filters and trims a raw log string to include only relevant lines and limits its length.

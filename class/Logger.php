@@ -46,13 +46,6 @@ class Logger
      */
     private string $repeaterLogFullPath = '';
 
-
-    /**
-     * @var string Full path to the file where STDERR is captured.
-     * This is set during the constructor if capturing STDERR is enabled.
-     */
-    private string $captureSTDERRFullPath = '';
-
     /**
      * @var string Last exception date and time as a formatted string.
      * This is updated whenever an exception is logged.
@@ -64,6 +57,13 @@ class Logger
      * This is set during the constructor based on the configuration.
      */
     private string $routerLogDumpFile = '';
+
+
+    /**
+     * @var string Name of the file to save warnings about unknown WiFi clients.
+     * This is set during the constructor based on the configuration.
+     */
+    private string $routerWiFiWarningsLogFile = '';
 
     /**
      * @var array Array to keep instant log strings.
@@ -182,6 +182,22 @@ class Logger
 
         } else {
             echo "Router log dump file is not set in the settings (empty string). Router log dumping on ISP ip changes is disabled.\n";
+        }
+
+
+        // WiFi unknown clients log file
+        $this->routerWiFiWarningsLogFile = ($this->config['settings']['routerWiFiWarningsLogFile'] ?? '');
+        if ($this->routerWiFiWarningsLogFile != '') {
+            $this->routerWiFiWarningsLogFile = str_replace("\\", "/", rtrim(realpath(__DIR__ . '/../'), DIRECTORY_SEPARATOR)
+                . DIRECTORY_SEPARATOR
+                . ltrim($this->routerWiFiWarningsLogFile, DIRECTORY_SEPARATOR));
+
+            echo $this->config['settings']['demo']
+                ? "Router WiFi unknown clients log is enabled. In demo mode the log file name is hidden.\n"
+                : "Router WiFi unknown clients log is enabled. Logging to: [$this->routerWiFiWarningsLogFile]\n";
+
+        } else {
+            echo "Router WiFi unknown clients log is not set in the settings (empty string). Logging of unknown WiFi clients is disabled.\n";
         }
 
         // Initialize last date of daily log processing
@@ -564,6 +580,26 @@ class Logger
             file_put_contents($this->routerLogDumpFile, "*** +++ Dump of [" . $totalLines . "] of limit [" . $dumpLinesToFile . "] log lines as of [" . $logDateTime . "] +++ ***" . "\n\n", FILE_APPEND);
             file_put_contents($this->routerLogDumpFile, $dataAsString . "\n\n", FILE_APPEND);
             file_put_contents($this->routerLogDumpFile, "*** --- Dump of [" . $totalLines . "] of limit [" . $dumpLinesToFile . "] log lines as of [" . $logDateTime . "] --- ***" . "\n\n", FILE_APPEND);
+        }
+    }
+
+
+    /**
+     * Logs unknown Wi-Fi client data to the configured warnings log file.
+     *
+     * If the router Wi-Fi warnings log file path is configured, the method appends
+     * the provided log text to the file and wraps it with timestamped start/end markers.
+     *
+     * @param string $dataAsString Unknown Wi-Fi client data formatted as a log string.
+     * @param array  $dataAsArray  Unknown Wi-Fi client data as an array.
+     */
+    public function logUnknownWiFiClient(string $dataAsString, array $dataAsArray): void
+    {
+        if ($this->routerWiFiWarningsLogFile != '') {
+            $logDateTime = date('Y.m.d H:i:s');
+            file_put_contents($this->routerWiFiWarningsLogFile, "*** +++ [" . $logDateTime . "] +++ ***" . "\n\n", FILE_APPEND);
+            file_put_contents($this->routerWiFiWarningsLogFile, $dataAsString . "\n\n", FILE_APPEND);
+            file_put_contents($this->routerWiFiWarningsLogFile, "*** --- [" . $logDateTime . "] --- ***" . "\n\n", FILE_APPEND);
         }
     }
 

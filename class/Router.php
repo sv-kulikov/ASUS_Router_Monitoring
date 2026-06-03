@@ -4,7 +4,6 @@ namespace Sv\Network\VmsRtbw;
 
 use DateTime;
 use Exception;
-use JsonException;
 use phpseclib3\Net\SSH2;
 
 /**
@@ -151,6 +150,12 @@ class Router
      *            This is used to track the last few MTProto online statuses of each provider.
      */
     private array $reliableOnlineMTProtoStatuses = [];
+
+    /**
+     * @var array List od devices with MAC ir IP not listed in the configuration file (<substituteNames> section).
+     * This list is used to send a Telegram warning message.
+     */
+    private array $notListedDevices = [];
 
     /**
      * Router constructor.
@@ -326,15 +331,18 @@ class Router
         $this->adaptersData = $routerAdaptersList;
         $this->totalRouterTraffic = $routerTotalTraffic;
 
-        $sshResponseRepeater = $this->sshClientRepeater->exec('ifconfig -a');
-        $sshResponseLinesRepeater = explode("\n", $sshResponseRepeater);
-
         $repeaterTotalTraffic = 0;
 
-        foreach ($sshResponseLinesRepeater as $line) {
+        if ($this->sshClientRepeater !== null) {
+            $sshResponseRepeater = $this->sshClientRepeater->exec('ifconfig -a');
+            $sshResponseLinesRepeater = explode("\n", $sshResponseRepeater);
 
-            $lineTrimmed = trim(str_replace(array("\n", "\r"), '', $line));
-            if (strlen($lineTrimmed) > 0) {
+            foreach ($sshResponseLinesRepeater as $line) {
+                $lineTrimmed = trim(str_replace(["\n", "\r"], '', $line));
+
+                if ($lineTrimmed === '') {
+                    continue;
+                }
 
                 preg_match_all("/RX bytes:(\d+) /", $lineTrimmed, $rxRegexArray);
                 if (isset($rxRegexArray[1][0])) {
@@ -345,7 +353,6 @@ class Router
                 if (isset($txRegexArray[1][0])) {
                     $repeaterTotalTraffic += (int)$txRegexArray[1][0];
                 }
-
             }
         }
 
@@ -487,13 +494,6 @@ class Router
                     $providerData['RXbytes'] = $routerAdapterData['rx'];
                     $providerData['TXbytes'] = $routerAdapterData['tx'];
 
-                    // A fix attempt to deal with ISP reconnects.
-
-                    // BEFORE:
-                    // $providerData['RXbytesAccumulated'] += ($providerData['RXbytes'] - $providerData['RXbytesLast']);
-                    // $providerData['TXbytesAccumulated'] += ($providerData['TXbytes'] - $providerData['TXbytesLast']);
-
-                    // +++ Now we calculate deltas and handle counter resets +++
                     $rxDelta = $providerData['RXbytes'] - $providerData['RXbytesLast'];
                     $txDelta = $providerData['TXbytes'] - $providerData['TXbytesLast'];
 
@@ -627,6 +627,9 @@ class Router
     public function refreshStats(): void
     {
         $timeDelta = $this->currentRefreshTime - $this->lastRefreshTime;
+        if ($timeDelta <= 0) {
+            $timeDelta = 1;
+        }
 
         // 1st step of statistics preparation (inits)
         foreach ($this->providersData as $providerName => $providerData) {
@@ -690,8 +693,8 @@ class Router
 
         // 3rd step of stats preparation (globals calculations)
         foreach ($this->providersData as $providerName => $providerData) {
-            $this->providersData[$providerName]['globalMaxRXLast'] = $providers[$providerName]['globalMaxRX'] ?? 0;
-            $this->providersData[$providerName]['globalMaxTXLast'] = $providers[$providerName]['globalMaxTX'] ?? 0;
+            $this->providersData[$providerName]['globalMaxRXLast'] = $this->providersData[$providerName]['globalMaxRX'] ?? 0;
+            $this->providersData[$providerName]['globalMaxTXLast'] = $this->providersData[$providerName]['globalMaxTX'] ?? 0;
 
             $this->providersData[$providerName]['globalMinRXLast'] = $this->providersData[$providerName]['globalMinRX'] ?? 0;
             $this->providersData[$providerName]['globalMinTXLast'] = $this->providersData[$providerName]['globalMinTX'] ?? 0;
@@ -945,7 +948,7 @@ class Router
             }
 
             // Memory usage
-            $hardwareData['memoryUsageRAW'] = $hardwareData['hooksResults']['memory_usage(appobj)']['memory_usage'] ?? '[]';
+            $hardwareData['memoryUsageRAW'] = $hardwareData['hooksResults']['memory_usage(appobj)']['memory_usage'] ?? [];
             $hardwareData['memoryTotal'] = (int)(($hardwareData['memoryUsageRAW']['mem_total'] ?? 0) / 1024);
             $hardwareData['memoryUsed'] = (int)(($hardwareData['memoryUsageRAW']['mem_used'] ?? 0) / 1024);
             $hardwareData['memoryUsedPerc'] = number_format(round($hardwareData['memoryUsed'] * 100 / max($hardwareData['memoryTotal'], 1), 1), 1, '.', '');
@@ -1159,6 +1162,133 @@ class Router
             if ($clientSubstituteName !== '') {
                 $beautifiedClient['Name'] = $clientSubstituteName;
                 $beautifiedClient['NickName'] = $clientSubstituteName;
+            }
+
+            $routerWiFiWarningsDelayAfterStartInSeconds = (int)(
+                $this->config['settings']['routerWiFiWarningsDelayAfterStartInSeconds'] ?? 0
+            );
+
+            $currentDateTime = new DateTime();
+            $globalStartDateTime = $this->configObject->getParameter('globalStartDateTime');
+
+            $routerWiFiWarningsDelayPassed = false;
+
+            if ($routerWiFiWarningsDelayAfterStartInSeconds <= 0) {
+                $routerWiFiWarningsDelayPassed = true;
+            } elseif ($globalStartDateTime instanceof DateTime) {
+                $secondsSinceUtilityStart = $currentDateTime->getTimestamp() - $globalStartDateTime->getTimestamp();
+
+                $routerWiFiWarningsDelayPassed = (
+                    $secondsSinceUtilityStart >= $routerWiFiWarningsDelayAfterStartInSeconds
+                );
+            }
+
+            // For online clients, check if the client is listed in <substituteNames> by MAC and/or IP.
+            if ($beautifiedClient['isOnline'] && $routerWiFiWarningsDelayPassed) {
+
+                $clientExistsInSubstituteNames = $this->isClientInSubstituteNamesList(
+                    $configSubstituteNames,
+                    $beautifiedClient['MAC'],
+                    $beautifiedClient['IP']
+                );
+
+                $macFound = (bool)($clientExistsInSubstituteNames['macFound'] ?? false);
+                $ipFound = (bool)($clientExistsInSubstituteNames['ipFound'] ?? false);
+
+                $mac = (string)($beautifiedClient['MAC'] ?? '');
+                $ip = (string)($beautifiedClient['IP'] ?? '');
+
+                if (!$macFound || !$ipFound) {
+                    if (!$macFound && $mac !== '') {
+                        $this->notListedDevices['byMAC'][$mac]['data'] = $beautifiedClient;
+                    }
+
+                    if (!$ipFound && $ip !== '') {
+                        $this->notListedDevices['byIP'][$ip]['data'] = $beautifiedClient;
+                    }
+
+                    /*
+                     * One warning key for the current client.
+                     * This prevents separate warning records when both MAC and IP are unknown.
+                     */
+                    $warningKey = $mac . '|' . $ip;
+
+                    if (!isset($this->notListedDevices['combined'][$warningKey]['warned'])) {
+                        $this->notListedDevices['combined'][$warningKey]['warned'] = true;
+
+                        $shouldWarn = (
+                            ($this->config['telegram']['telegramWarnOnClientNotInSubstituteNamesList'] ?? '') === 'Y'
+                        );
+
+                        if ($shouldWarn) {
+                            $messageParts = [];
+
+                            if (!$macFound && !$ipFound) {
+                                $messageParts[] = date('Y.m.d H:i:s') . ' A client with unknown MAC and IP detected.';
+                                $messageParts[] = 'Unknown MAC: [' . $mac . ']';
+                                $messageParts[] = 'Unknown IP: [' . $ip . ']';
+                            } elseif (!$macFound) {
+                                $messageParts[] = date('Y.m.d H:i:s') . ' A client with unknown MAC detected.';
+                                $messageParts[] = 'Unknown MAC: [' . $mac . ']';
+                                $messageParts[] = 'Known IP: [' . $ip . ']';
+                            } elseif (!$ipFound) {
+                                $messageParts[] = date('Y.m.d H:i:s') . ' A client with unknown IP detected.';
+                                $messageParts[] = 'Known MAC: [' . $mac . ']';
+                                $messageParts[] = 'Unknown IP: [' . $ip . ']';
+                            }
+
+                            $messageParts[] = '';
+
+                            /*
+                             * Only the most useful client details are included in the Telegram/log message.
+                             */
+                            $fieldsToShow = [
+                                'Connection',
+                                'Vendor',
+                                'Name',
+                                'NickName',
+                                'Type',
+                                'isOnline',
+                                'isWiFi',
+                                'isWired',
+                                'isGuest',
+                                'RSSI',
+                                'WiFiRX',
+                                'WiFiTX',
+                                'WiFiConnectionTime',
+                                'isOnlineByRouter',
+                            ];
+
+                            foreach ($fieldsToShow as $fieldName) {
+                                if (!array_key_exists($fieldName, $beautifiedClient)) {
+                                    continue;
+                                }
+
+                                $value = $beautifiedClient[$fieldName];
+
+                                if (is_bool($value)) {
+                                    $value = $value ? 'true' : 'false';
+                                } elseif ($value === null) {
+                                    $value = 'null';
+                                } elseif (is_array($value)) {
+                                    $value = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                                } else {
+                                    $value = (string)$value;
+                                }
+
+                                $messageParts[] = $fieldName . ': ' . $value;
+                            }
+
+                            $message = implode("\n", $messageParts);
+
+                            $this->logger->logUnknownWiFiClient($message, $beautifiedClient);
+
+                            if ($this->telegram->isTelegramEnabled()) {
+                                $this->telegram->sendMessage($message);
+                            }
+                        }
+                    }
+                }
             }
 
             // Apply any found actions
@@ -1458,6 +1588,81 @@ class Router
     }
 
     /**
+     * Checks whether a client exists in the substitute names list by MAC and/or IP.
+     *
+     * The method checks MAC and IP independently and also returns the matched
+     * substitute-name records, so the caller can detect partial matches:
+     *
+     * - MAC not found, but IP found
+     * - IP not found, but MAC found
+     * - both MAC and IP found
+     * - neither MAC nor IP found
+     *
+     * @param array $configSubstituteNames Substitute names configuration list.
+     * @param string $mac Client MAC address to search for.
+     *                                      Compared case-insensitively and trimmed internally.
+     * @param string $ip Client IP address to search for.
+     *                                      Compared after trimming.
+     *
+     * @return array{
+     *     macFound: bool,
+     *     ipFound: bool,
+     *     foundByMac: array|null,
+     *     foundByIp: array|null
+     * }
+     * Returns:
+     * - macFound:  TRUE if a matching MAC address is found.
+     * - ipFound:   TRUE if a matching IP address is found.
+     * - foundByMac: The first substitute-name record matched by MAC, or NULL.
+     * - foundByIp:  The first substitute-name record matched by IP, or NULL.
+     */
+    public function isClientInSubstituteNamesList(array $configSubstituteNames, string $mac, string $ip): array
+    {
+        $mac = strtolower(trim($mac));
+        $ip = trim($ip);
+
+        $macFound = false;
+        $ipFound = false;
+
+        $foundByMac = null;
+        $foundByIp = null;
+
+        foreach ($configSubstituteNames as $client) {
+            if (
+                !$macFound
+                && $mac !== ''
+                && isset($client['mac'])
+                && strtolower(trim((string)$client['mac'])) === $mac
+            ) {
+                $macFound = true;
+                $foundByMac = $client;
+            }
+
+            if (
+                !$ipFound
+                && $ip !== ''
+                && isset($client['ip'])
+                && trim((string)$client['ip']) === $ip
+            ) {
+                $ipFound = true;
+                $foundByIp = $client;
+            }
+
+            if ($macFound && $ipFound) {
+                break;
+            }
+        }
+
+        return [
+            'macFound' => $macFound,
+            'ipFound' => $ipFound,
+            'foundByMac' => $foundByMac,
+            'foundByIp' => $foundByIp,
+        ];
+    }
+
+
+    /**
      * Formats seconds into a "router-like" string in the format "H:M:S"
      * for $client['WiFiConnectionTime'], e.g., 999:23:56.
      *
@@ -1743,6 +1948,59 @@ class Router
         $lastLinesForFile = array_slice($sshResponseSplitByLines, -$linesForFile);
         $lastLinesForTelegram = array_slice($sshResponseSplitByLines, -$linesForTelegram);
         return ['forFile' => implode("\n", $lastLinesForFile), 'forTelegram' => implode("\n", $lastLinesForTelegram), 'totalLines' => count($sshResponseSplitByLines)];
+    }
+
+
+
+    /**
+     * Converts a complex array into a readable key-value text block.
+     *
+     * Example:
+     *
+     * MAC: AA:BB:CC:DD:EE:FF
+     * IP: 192.168.1.15
+     * Details:
+     *     Vendor: Xiaomi
+     *     Signal: -55
+     *
+     * @param array $data Array to format.
+     * @param int $indent Current indentation level.
+     * @param int $indentSize Number of spaces per indentation level.
+     *
+     * @return string Formatted key-value string.
+     */
+    private function formatComplexArrayAsKeyValueString(array $data, int $indent = 0, int $indentSize = 4): string
+    {
+        $lines = [];
+        $prefix = str_repeat(' ', $indent * $indentSize);
+
+        foreach ($data as $key => $value) {
+            if (is_array($value)) {
+                $lines[] = $prefix . $key . ':';
+
+                if ($value === []) {
+                    $lines[] = str_repeat(' ', ($indent + 1) * $indentSize) . '[empty array]';
+                } else {
+                    $lines[] = $this->formatComplexArrayAsKeyValueString($value, $indent + 1, $indentSize);
+                }
+
+                continue;
+            }
+
+            if (is_bool($value)) {
+                $valueAsString = $value ? 'true' : 'false';
+            } elseif ($value === null) {
+                $valueAsString = 'null';
+            } elseif (is_object($value)) {
+                $valueAsString = '[object ' . get_class($value) . ']';
+            } else {
+                $valueAsString = (string)$value;
+            }
+
+            $lines[] = $prefix . $key . ': ' . $valueAsString;
+        }
+
+        return implode("\n", $lines);
     }
 
 }

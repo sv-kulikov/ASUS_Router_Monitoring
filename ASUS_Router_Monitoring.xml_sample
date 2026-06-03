@@ -28,6 +28,8 @@
         <routerLogDumpFile>../_ASUS_Logs/_rt.log</routerLogDumpFile>
         <routerLogDumpLinesOnProviderIPChanges>10000</routerLogDumpLinesOnProviderIPChanges>
         <routerLogToTelegramOnProviderIPChanges>10</routerLogToTelegramOnProviderIPChanges>
+        <routerWiFiWarningsLogFile>../_ASUS_Logs/_wf.log</routerWiFiWarningsLogFile>
+        <routerWiFiWarningsDelayAfterStartInSeconds>120</routerWiFiWarningsDelayAfterStartInSeconds>
         <saveRouterLogDaily>Y</saveRouterLogDaily>
         <saveRouterLogPath>../_ASUS_Logs</saveRouterLogPath>
         <saveRepeaterLogDaily>Y</saveRepeaterLogDaily>
@@ -80,6 +82,7 @@
         <telegramLogFile>../_ASUS_Logs/_tg.log</telegramLogFile>
         <telegramBotToken>1234567890:long_string</telegramBotToken>
         <telegramChatId>0987654321</telegramChatId>
+        <telegramWarnOnClientNotInSubstituteNamesList>Y</telegramWarnOnClientNotInSubstituteNamesList>
     </telegram>
     <substituteNames>
         <client>
